@@ -1,0 +1,21 @@
+[package]
+name = "oqs"
+version = "0.1.0"
+authors = ["Mullvad VPN <admin@mullvad.net>", "Linus Färnstrand <faern@faern.net>", "Odd Stranne <odd@mullvad.net>"]
+license = "MIT/Apache-2.0"
+description = "Bindings for Open Quantum Safe, a library for quantum-resistant cryptographic algorithms."
+keywords = ["post-quantum", "liboqs", "kex", "quantum-resistant"]
+categories = ["algorithms", "api-bindings", "cryptography"]
+
+[dependencies]
+oqs-sys = { path = "../oqs-sys" }
+libc = { version = "0.2", default-features = false }
+serde = { version = "1.0", default-features = false, optional = true }
+serde_derive = { version = "1.0", default-features = false, optional = true }
+
+[dev-dependencies]
+serde_json = "1.0"
+
+[features]
+default = []
+serialize = ["serde", "serde_derive"]
