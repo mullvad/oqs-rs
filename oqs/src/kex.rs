@@ -6,6 +6,7 @@ use oqs_sys::kex as ffi;
 
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum OqsRandAlg {
     Default = ffi::OQS_RAND_alg_name::OQS_RAND_alg_default as u32,
     UrandomChacha20 = ffi::OQS_RAND_alg_name::OQS_RAND_alg_urandom_chacha20 as u32,
@@ -56,6 +57,7 @@ impl Drop for OqsRand {
 
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub enum OqsKexAlg {
     Default = ffi::OQS_KEX_alg_name::OQS_KEX_alg_default as u32,
     RlweBcns15 = ffi::OQS_KEX_alg_name::OQS_KEX_alg_rlwe_bcns15 as u32,
@@ -123,10 +125,11 @@ impl OqsKex {
             )
         };
         if result == ffi::SUCCESS {
+            let kex_alg = self.kex_alg;
             Ok(OqsKexAlice {
                 parent: self,
                 alice_priv,
-                alice_msg: AliceMsg(Buf::new(alice_msg, alice_msg_len)),
+                alice_msg: AliceMsg::new(kex_alg, Buf::new(alice_msg, alice_msg_len)),
             })
         } else {
             Err(Error)
@@ -141,8 +144,8 @@ impl OqsKex {
         let result = unsafe {
             ffi::OQS_KEX_bob(
                 self.oqs_kex,
-                alice_msg.0.ptr(),
-                alice_msg.0.len(),
+                alice_msg.data.ptr(),
+                alice_msg.data.len(),
                 &mut bob_msg,
                 &mut bob_msg_len,
                 &mut key,
@@ -151,8 +154,8 @@ impl OqsKex {
         };
         if result == ffi::SUCCESS {
             Ok((
-                BobMsg(Buf::new(bob_msg, bob_msg_len)),
-                SharedKey(Buf::new(key, key_len)),
+                BobMsg::new(self.kex_alg, Buf::new(bob_msg, bob_msg_len)),
+                SharedKey::new(self.kex_alg, Buf::new(key, key_len)),
             ))
         } else {
             Err(Error)
@@ -180,14 +183,14 @@ impl OqsKexAlice {
             ffi::OQS_KEX_alice_1(
                 self.parent.oqs_kex,
                 self.alice_priv,
-                bob_msg.0.ptr(),
-                bob_msg.0.len(),
+                bob_msg.data.ptr(),
+                bob_msg.data.len(),
                 &mut key,
                 &mut key_len,
             )
         };
         if result == ffi::SUCCESS {
-            Ok(SharedKey(Buf::new(key, key_len)))
+            Ok(SharedKey::new(self.parent.kex_alg, Buf::new(key, key_len)))
         } else {
             Err(Error)
         }
@@ -213,31 +216,73 @@ impl Drop for OqsKexAlice {
 
 #[derive(Debug, Eq, PartialEq, Hash)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-pub struct AliceMsg(Buf);
+pub struct AliceMsg {
+    kex_alg: OqsKexAlg,
+    data: Buf
+}
 
 impl AliceMsg {
+    fn new(kex_alg: OqsKexAlg, data: Buf) -> Self {
+        AliceMsg {
+            kex_alg,
+            data,
+        }
+    }
+
+    pub fn algorithm(&self) -> OqsKexAlg {
+        self.kex_alg
+    }
+
     pub fn data(&self) -> &[u8] {
-        self.0.data()
+        self.data.data()
     }
 }
 
 #[derive(Debug, Eq, PartialEq, Hash)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-pub struct BobMsg(Buf);
+pub struct BobMsg {
+    kex_alg: OqsKexAlg,
+    data: Buf
+}
 
 impl BobMsg {
+    fn new(kex_alg: OqsKexAlg, data: Buf) -> Self {
+        BobMsg {
+            kex_alg,
+            data,
+        }
+    }
+
+    pub fn algorithm(&self) -> OqsKexAlg {
+        self.kex_alg
+    }
+
     pub fn data(&self) -> &[u8] {
-        self.0.data()
+        self.data.data()
     }
 }
 
 #[derive(Debug, Eq, PartialEq, Hash)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-pub struct SharedKey(Buf);
+pub struct SharedKey {
+    kex_alg: OqsKexAlg,
+    data: Buf
+}
 
 impl SharedKey {
+    fn new(kex_alg: OqsKexAlg, data: Buf) -> Self {
+        SharedKey {
+            kex_alg,
+            data,
+        }
+    }
+
+    pub fn algorithm(&self) -> OqsKexAlg {
+        self.kex_alg
+    }
+
     pub fn data(&self) -> &[u8] {
-        self.0.data()
+        self.data.data()
     }
 }
 

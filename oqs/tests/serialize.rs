@@ -14,12 +14,16 @@ mod serialize {
             .unwrap();
         let alice_msg = kex_alice.get_alice_msg();
 
-        let alice_msg_json = serde_json::to_value(alice_msg).unwrap();
-        let alice_msg_json_array = alice_msg_json.as_array().unwrap();
+        let json_value = serde_json::to_value(alice_msg).unwrap();
+        let json_object = json_value.as_object().unwrap();
 
-        assert!(!alice_msg_json_array.is_empty());
-        assert_eq!(alice_msg_json_array.len(), alice_msg.data().len());
-        for (actual, expected) in alice_msg_json_array.iter().zip(alice_msg.data()) {
+        let algorithm = json_object.get("kex_alg").unwrap().as_str().unwrap();
+        assert_eq!(algorithm, "RlweNewhope");
+
+        let data = json_object.get("data").unwrap().as_array().unwrap();
+        assert!(!data.is_empty());
+        assert_eq!(data.len(), alice_msg.data().len());
+        for (actual, expected) in data.iter().zip(alice_msg.data()) {
             assert_eq!(actual.as_u64().unwrap(), *expected as u64);
         }
     }
@@ -33,6 +37,7 @@ mod serialize {
         let alice_msg = kex_alice.get_alice_msg();
 
         let json_string = serde_json::to_string(alice_msg).unwrap();
+        println!("AliceMsg in json: {}", json_string);
 
         let deserialized_alice_msg: AliceMsg = serde_json::from_str(&json_string).unwrap();
         assert_eq!(&deserialized_alice_msg, alice_msg);
