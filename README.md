@@ -8,12 +8,16 @@ This repository contains the following crates:
 
 # Building liboqs
 
-Here are instructions for building `liboqs` with `-fPIC` (Needed for linking from Rust) and with all crypto algorithms enabled.
+Here are instructions for building `liboqs` with `-fPIC` (Needed for linking from Rust) and with all
+crypto algorithms enabled. See the `liboqs` README for more detailed instructions.
 
 If you build `liboqs` without some crypto algorithms and then try to use those from rust, you will
 get a panic.
 
 ```bash
+# Install dependencies:
+sudo apt install clang cmake libsodium-dev autoconf automake libtool
+
 git clone https://github.com/open-quantum-safe/liboqs
 cd liboqs
 autoreconf -i
