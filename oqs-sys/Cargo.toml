@@ -5,7 +5,7 @@ authors = ["Mullvad VPN <admin@mullvad.net>", "Linus Färnstrand <faern@faern.ne
 license = "MIT/Apache-2.0"
 description = "FFI bindings for liboqs (Open Quantum Safe). See oqs crate for higher level abstraction."
 keywords = ["post-quantum", "liboqs", "kex", "quantum-resistant"]
-categories = ["algorithms", "api-bindings", "cryptography", "external-ffi-bindings"]
+categories = ["api-bindings", "cryptography", "external-ffi-bindings", "no-std"]
 build = "build.rs"
 
 [dependencies]

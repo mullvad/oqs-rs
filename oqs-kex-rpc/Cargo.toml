@@ -1,7 +1,11 @@
 [package]
 name = "oqs-kex-rpc"
 version = "0.1.0"
-authors = ["Odd Stranne <odd@mullvad.net>"]
+authors = ["Mullvad VPN <admin@mullvad.net>", "Linus Färnstrand <faern@faern.net>", "Odd Stranne <odd@mullvad.net>"]
+license = "MIT/Apache-2.0"
+description = "JSON-RPC 2.0 server and client using liboqs for doing key exchange"
+keywords = ["post-quantum", "liboqs", "kex", "key-exchange", "json-rpc"]
+categories = ["cryptography", "network-programming", "web-programming::http-client", "web-programming::http-server"]
 
 [dependencies]
 error-chain = "0.11"
