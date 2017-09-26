@@ -4,7 +4,11 @@ version = "0.1.0"
 authors = ["Odd Stranne <odd@mullvad.net>"]
 
 [dependencies]
+error-chain = "0.11"
 oqs = {path="../oqs", features=["serialize"]}
 uuid = {version="0.5", features=["serde"]}
 jsonrpc-client-core = "0.2"
 jsonrpc-client-http = "0.2"
+jsonrpc-core = "7.1.1"
+jsonrpc-macros = "7.1.1"
+jsonrpc-http-server = "7.1.1"
