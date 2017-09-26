@@ -1,0 +1,15 @@
+[package]
+name = "oqs-sys"
+version = "0.1.0"
+authors = ["Mullvad VPN <admin@mullvad.net>", "Linus Färnstrand <faern@faern.net>", "Odd Stranne <odd@mullvad.net>"]
+license = "MIT/Apache-2.0"
+description = "FFI bindings for liboqs (Open Quantum Safe). See oqs crate for higher level abstraction."
+keywords = ["post-quantum", "liboqs", "kex", "quantum-resistant"]
+categories = ["algorithms", "api-bindings", "cryptography", "external-ffi-bindings"]
+build = "build.rs"
+
+[dependencies]
+libc = { version = "0.2", default-features = false }
+
+[build-dependencies]
+bindgen = "0.30"
