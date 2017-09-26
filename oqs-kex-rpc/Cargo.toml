@@ -1,0 +1,10 @@
+[package]
+name = "oqs-kex-rpc"
+version = "0.1.0"
+authors = ["Odd Stranne <odd@mullvad.net>"]
+
+[dependencies]
+oqs = {path="../oqs", features=["serialize"]}
+uuid = {version="0.5", features=["serde"]}
+jsonrpc-client-core = "0.2"
+jsonrpc-client-http = "0.2"
