@@ -1,5 +1,5 @@
 use libc;
-use core::{mem, ptr, slice};
+use core::{mem, ptr};
 use std::fmt;
 
 use oqs_sys::kex as ffi;
@@ -141,8 +141,8 @@ impl OqsKex {
         let result = unsafe {
             ffi::OQS_KEX_bob(
                 self.oqs_kex,
-                alice_msg.0.msg,
-                alice_msg.0.len,
+                alice_msg.0.ptr(),
+                alice_msg.0.len(),
                 &mut bob_msg,
                 &mut bob_msg_len,
                 &mut key,
@@ -180,8 +180,8 @@ impl OqsKexAlice {
             ffi::OQS_KEX_alice_1(
                 self.parent.oqs_kex,
                 self.alice_priv,
-                bob_msg.0.msg,
-                bob_msg.0.len,
+                bob_msg.0.ptr(),
+                bob_msg.0.len(),
                 &mut key,
                 &mut key_len,
             )
@@ -211,7 +211,8 @@ impl Drop for OqsKexAlice {
 }
 
 
-#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct AliceMsg(Buf);
 
 impl AliceMsg {
@@ -220,7 +221,8 @@ impl AliceMsg {
     }
 }
 
-#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct BobMsg(Buf);
 
 impl BobMsg {
@@ -229,7 +231,8 @@ impl BobMsg {
     }
 }
 
-#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive(Debug, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SharedKey(Buf);
 
 impl SharedKey {
@@ -238,37 +241,35 @@ impl SharedKey {
     }
 }
 
-
-struct Buf {
-    msg: *const u8,
-    len: usize,
-}
+#[derive(Debug, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+struct Buf(Option<Box<[u8]>>);
 
 impl Buf {
-    pub fn new(msg: *const u8, len: usize) -> Self {
-        Buf { msg, len }
+    pub fn new(msg: *mut u8, len: usize) -> Self {
+        Buf(Some(unsafe { Vec::from_raw_parts(msg, len, len) }.into_boxed_slice()))
     }
 
     pub fn data(&self) -> &[u8] {
-        unsafe { slice::from_raw_parts(self.msg, self.len) }
+        &self.0.as_ref().unwrap()
+    }
+
+    fn ptr(& self) -> *const u8 {
+        self.0.as_ref().unwrap().as_ptr() as *const u8
+    }
+
+    fn len(&self) -> usize {
+        self.0.as_ref().unwrap().len()
     }
 }
 
 impl Drop for Buf {
     fn drop(&mut self) {
         unsafe {
-            libc::free(self.msg as *mut libc::c_void);
+            let mut buf = self.0.take().unwrap();
+            libc::free(buf.as_mut_ptr() as *mut libc::c_void);
+            mem::forget(buf);
         }
-    }
-}
-
-#[cfg(feature = "serialize")]
-impl ::serde::ser::Serialize for Buf {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: ::serde::ser::Serializer,
-    {
-        serializer.serialize_bytes(self.data())
     }
 }
 
