@@ -3,6 +3,7 @@ use core::{mem, ptr};
 use std::fmt;
 
 use oqs_sys::kex as ffi;
+use buf::Buf;
 
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -129,7 +130,7 @@ impl OqsKex {
             Ok(OqsKexAlice {
                 parent: self,
                 alice_priv,
-                alice_msg: AliceMsg::new(kex_alg, Buf::new(alice_msg, alice_msg_len)),
+                alice_msg: AliceMsg::new(kex_alg, Buf::from_c(alice_msg, alice_msg_len)),
             })
         } else {
             Err(Error)
@@ -154,8 +155,8 @@ impl OqsKex {
         };
         if result == ffi::SUCCESS {
             Ok((
-                BobMsg::new(self.kex_alg, Buf::new(bob_msg, bob_msg_len)),
-                SharedKey::new(self.kex_alg, Buf::new(key, key_len)),
+                BobMsg::new(self.kex_alg, Buf::from_c(bob_msg, bob_msg_len)),
+                SharedKey::new(self.kex_alg, Buf::from_c(key, key_len)),
             ))
         } else {
             Err(Error)
@@ -190,7 +191,10 @@ impl OqsKexAlice {
             )
         };
         if result == ffi::SUCCESS {
-            Ok(SharedKey::new(self.parent.kex_alg, Buf::new(key, key_len)))
+            Ok(SharedKey::new(
+                self.parent.kex_alg,
+                Buf::from_c(key, key_len),
+            ))
         } else {
             Err(Error)
         }
@@ -214,19 +218,16 @@ impl Drop for OqsKexAlice {
 }
 
 
-#[derive(Debug, Eq, PartialEq, Hash)]
+#[derive(Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct AliceMsg {
     kex_alg: OqsKexAlg,
-    data: Buf
+    data: Buf,
 }
 
 impl AliceMsg {
     fn new(kex_alg: OqsKexAlg, data: Buf) -> Self {
-        AliceMsg {
-            kex_alg,
-            data,
-        }
+        AliceMsg { kex_alg, data }
     }
 
     pub fn algorithm(&self) -> OqsKexAlg {
@@ -238,19 +239,16 @@ impl AliceMsg {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Hash)]
+#[derive(Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct BobMsg {
     kex_alg: OqsKexAlg,
-    data: Buf
+    data: Buf,
 }
 
 impl BobMsg {
     fn new(kex_alg: OqsKexAlg, data: Buf) -> Self {
-        BobMsg {
-            kex_alg,
-            data,
-        }
+        BobMsg { kex_alg, data }
     }
 
     pub fn algorithm(&self) -> OqsKexAlg {
@@ -262,19 +260,16 @@ impl BobMsg {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Hash)]
+#[derive(Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct SharedKey {
     kex_alg: OqsKexAlg,
-    data: Buf
+    data: Buf,
 }
 
 impl SharedKey {
     fn new(kex_alg: OqsKexAlg, data: Buf) -> Self {
-        SharedKey {
-            kex_alg,
-            data,
-        }
+        SharedKey { kex_alg, data }
     }
 
     pub fn algorithm(&self) -> OqsKexAlg {
@@ -286,37 +281,6 @@ impl SharedKey {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Hash)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-struct Buf(Option<Box<[u8]>>);
-
-impl Buf {
-    pub fn new(msg: *mut u8, len: usize) -> Self {
-        Buf(Some(unsafe { Vec::from_raw_parts(msg, len, len) }.into_boxed_slice()))
-    }
-
-    pub fn data(&self) -> &[u8] {
-        &self.0.as_ref().unwrap()
-    }
-
-    fn ptr(& self) -> *const u8 {
-        self.0.as_ref().unwrap().as_ptr() as *const u8
-    }
-
-    fn len(&self) -> usize {
-        self.0.as_ref().unwrap().len()
-    }
-}
-
-impl Drop for Buf {
-    fn drop(&mut self) {
-        unsafe {
-            let mut buf = self.0.take().unwrap();
-            libc::free(buf.as_mut_ptr() as *mut libc::c_void);
-            mem::forget(buf);
-        }
-    }
-}
 
 
 #[derive(Debug, Copy, Clone, Hash)]

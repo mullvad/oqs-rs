@@ -4,7 +4,7 @@ extern crate serde_json;
 #[cfg(feature = "serialize")]
 mod serialize {
     use serde_json;
-    use oqs::kex::{OqsKex, OqsKexAlg, OqsRandAlg, AliceMsg};
+    use oqs::kex::{AliceMsg, OqsKex, OqsKexAlg, OqsRandAlg};
 
     #[test]
     fn serialize_alice_msg() {
@@ -40,6 +40,7 @@ mod serialize {
         println!("AliceMsg in json: {}", json_string);
 
         let deserialized_alice_msg: AliceMsg = serde_json::from_str(&json_string).unwrap();
+        println!("AliceMsg deserialized: {:?}", deserialized_alice_msg);
         assert_eq!(&deserialized_alice_msg, alice_msg);
     }
 }
