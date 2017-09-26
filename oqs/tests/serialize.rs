@@ -1,10 +1,9 @@
-extern crate oqs;
-extern crate serde_json;
-
-#[cfg(feature = "serialize")]
+#[cfg(feature = "serde")]
 mod serialize {
-    use serde_json;
-    use oqs::kex::{AliceMsg, OqsKex, OqsKexAlg, OqsRandAlg};
+    extern crate oqs;
+    extern crate serde_json;
+
+    use self::oqs::kex::{AliceMsg, OqsKex, OqsKexAlg, OqsRandAlg};
 
     #[test]
     fn serialize_alice_msg() {

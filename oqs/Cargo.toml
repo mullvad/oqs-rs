@@ -10,12 +10,8 @@ categories = ["algorithms", "api-bindings", "cryptography"]
 [dependencies]
 oqs-sys = { path = "../oqs-sys" }
 libc = { version = "0.2", default-features = false }
-serde = { version = "1.0", default-features = false, optional = true }
-serde_derive = { version = "1.0", default-features = false, optional = true }
+serde = { version = "1.0", default-features = false, optional = true, features = ["derive"] }
 
 [dev-dependencies]
 serde_json = "1.0"
 
-[features]
-default = []
-serialize = ["serde", "serde_derive"]

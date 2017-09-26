@@ -12,8 +12,8 @@ use libc;
 /// from Rust. Only the `from_c` constructor should create the `CAlloc` variant.
 /// See https://serde.rs/enum-representations.html#untagged for details.
 #[derive(Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serialize", serde(untagged))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(untagged))]
 pub enum Buf {
     RustAlloc(Box<[u8]>),
     CAlloc(Option<Box<[u8]>>),

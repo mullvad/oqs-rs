@@ -2,9 +2,9 @@ extern crate core;
 extern crate libc;
 extern crate oqs_sys;
 
-#[cfg_attr(feature = "serialize", macro_use)]
-#[cfg(feature = "serialize")]
-extern crate serde_derive;
+#[cfg_attr(feature = "serde", macro_use)]
+#[cfg(feature = "serde")]
+extern crate serde;
 
 
 pub mod kex;

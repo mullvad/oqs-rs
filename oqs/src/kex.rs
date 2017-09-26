@@ -7,7 +7,7 @@ use buf::Buf;
 
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum OqsRandAlg {
     Default = ffi::OQS_RAND_alg_name::OQS_RAND_alg_default as u32,
     UrandomChacha20 = ffi::OQS_RAND_alg_name::OQS_RAND_alg_urandom_chacha20 as u32,
@@ -58,7 +58,7 @@ impl Drop for OqsRand {
 
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum OqsKexAlg {
     Default = ffi::OQS_KEX_alg_name::OQS_KEX_alg_default as u32,
     RlweBcns15 = ffi::OQS_KEX_alg_name::OQS_KEX_alg_rlwe_bcns15 as u32,
@@ -219,7 +219,7 @@ impl Drop for OqsKexAlice {
 
 
 #[derive(Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct AliceMsg {
     kex_alg: OqsKexAlg,
     data: Buf,
@@ -240,7 +240,7 @@ impl AliceMsg {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BobMsg {
     kex_alg: OqsKexAlg,
     data: Buf,
@@ -261,7 +261,7 @@ impl BobMsg {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SharedKey {
     kex_alg: OqsKexAlg,
     data: Buf,
