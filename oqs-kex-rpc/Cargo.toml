@@ -10,7 +10,6 @@ categories = ["cryptography", "network-programming", "web-programming::http-clie
 [dependencies]
 error-chain = "0.11"
 oqs = { path = "../oqs", features = ["serde"] }
-uuid = { version = "0.5", features = ["serde"] }
 jsonrpc-client-core = "0.2"
 jsonrpc-client-http = "0.2"
 jsonrpc-core = "7.1.1"

@@ -1,10 +1,8 @@
-use uuid::Uuid;
-
 use jsonrpc_client_http::{HttpTransport, HttpHandle};
 use oqs::kex::{AliceMsg, BobMsg};
 
 jsonrpc_client!(pub struct OqsKexRpcClient {
-    pub fn kex(&mut self, alice_msgs: &[&AliceMsg]) -> RpcRequest<(Uuid, Vec<BobMsg>)>;
+    pub fn kex(&mut self, alice_msgs: &[&AliceMsg]) -> RpcRequest<Vec<BobMsg>>;
 });
 
 impl OqsKexRpcClient<HttpHandle> {
