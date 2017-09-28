@@ -43,7 +43,7 @@ error_chain! {
 }
 
 /// Tries to start a HTTP JSON-RPC 2.0 server at `addr`. Will call `on_kex` after each finished
-/// negotiation and give it the uuid and the resulting keys of the key exchange.
+/// negotiation and give it the resulting keys of the key exchange.
 pub fn start<F>(addr: &str, on_kex: F) -> Result<jsonrpc_http_server::Server>
 where
     F: Fn(Vec<SharedKey>) + Send + Sync + 'static,
