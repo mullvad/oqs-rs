@@ -1,7 +1,18 @@
 pub mod rpc;
 
-use oqs::kex::{OqsKexAlg, OqsRandAlg, SharedKey, OqsKex, AliceMsg, OqsKexAlice};
+use oqs::kex::{OqsKexAlg, OqsRandAlg, SharedKey, OqsKex, AliceMsg, BobMsg, OqsKexAlice};
 use jsonrpc_client_http::HttpHandle;
+
+error_chain! {
+    errors {
+        CreateRpcClient { description("failed to create RPC client") }
+        CreateNativeKex { description("failed to create native kex object") }
+        InitializeNativeKex { description("failed to initialize native kex object") }
+        ServerComms { description("server communications failed") }
+        ServerResponse { description("invalid server response") }
+        FinalizeKex { description("failed to finalize kex") }
+    }
+}
 
 pub struct OqsKexClient {
     rpc_client: rpc::OqsKexRpcClient<HttpHandle>,
@@ -9,32 +20,54 @@ pub struct OqsKexClient {
 }
 
 impl OqsKexClient {
-    pub fn new(addr: &str) -> Self {
-        let rpc_client = rpc::OqsKexRpcClient::connect(addr);
-        OqsKexClient {
+    pub fn new(addr: &str) -> Result<Self> {
+        let rpc_client = rpc::OqsKexRpcClient::connect(addr).chain_err(|| ErrorKind::CreateRpcClient)?;
+
+        let client = OqsKexClient {
             rpc_client,
             rand: OqsRandAlg::default(),
-        }
+        };
+
+        Ok(client)
     }
 
     pub fn set_rand(&mut self, rand: OqsRandAlg) {
         self.rand = rand;
     }
 
-    pub fn kex(&mut self, algs: &[OqsKexAlg]) -> Vec<SharedKey> {
-        let alices: Vec<OqsKexAlice> = algs.iter()
-            .map(|alg| OqsKex::new(self.rand, *alg).unwrap().alice_0().unwrap())
-            .collect();
+    pub fn kex(&mut self, algs: &[OqsKexAlg]) -> Result<Vec<SharedKey>> {
+        let alices: Vec<OqsKexAlice> = self.initialize_kex(algs)?;
 
-        let bob_msgs = {
+        let bob_msgs: Vec<BobMsg> = {
             let alice_msgs: Vec<&AliceMsg> = alices.iter().map(|alice| alice.get_alice_msg()).collect();
-            self.rpc_client.kex(&alice_msgs).call().unwrap()
+            self.rpc_client.kex(&alice_msgs).call().chain_err(|| ErrorKind::ServerComms)?
         };
 
-        alices
-            .into_iter()
-            .zip(bob_msgs)
-            .map(|(alice, bob_msg)| alice.alice_1(&bob_msg).unwrap())
-            .collect::<Vec<SharedKey>>()
+        ensure!(alices.len() == bob_msgs.len(), ErrorKind::ServerResponse);
+
+        self.finalize_kex(alices, &bob_msgs)
+    }
+
+    fn initialize_kex(&mut self, algs: &[OqsKexAlg]) -> Result<Vec<OqsKexAlice>> {
+        let mut alices: Vec<OqsKexAlice> = Vec::new();
+
+        for alg in algs {
+           let oqskex = OqsKex::new(self.rand, *alg).chain_err(|| ErrorKind::CreateNativeKex)?;
+           let alice = oqskex.alice_0().chain_err(|| ErrorKind::InitializeNativeKex)?;
+           alices.push(alice);
+        }
+
+        Ok(alices)
+    }
+
+    fn finalize_kex(&mut self, alices: Vec<OqsKexAlice>, bob_msgs: &Vec<BobMsg>) -> Result<Vec<SharedKey>> {
+        let mut keys: Vec<SharedKey> = Vec::new();
+
+        for (alice, bob_msg) in alices.into_iter().zip(bob_msgs) {
+            let key = alice.alice_1(&bob_msg).chain_err(|| ErrorKind::FinalizeKex)?;
+            keys.push(key);
+        }
+
+        Ok(keys)
     }
 }
