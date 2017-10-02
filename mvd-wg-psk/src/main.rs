@@ -21,7 +21,10 @@ fn main() {
 }
 
 fn real_main() -> i32 {
-    match wg_psk_kex() {
+    let server = String::from("10.99.0.1:1984");
+    let algs = vec![OqsKexAlg::RlweNewhope, OqsKexAlg::CodeMcbits, OqsKexAlg::SidhCln16];
+
+    match wg_psk_kex(&server, &algs) {
         Ok(psk) => {
             println!("{}", psk);
             return 0;
@@ -33,11 +36,9 @@ fn real_main() -> i32 {
    }
 }
 
-fn wg_psk_kex() -> Result<String> {
-    let algs = vec![OqsKexAlg::RlweNewhope, OqsKexAlg::CodeMcbits, OqsKexAlg::SidhCln16];
-
-    let mut client = OqsKexClient::new("10.99.0.1:1984")?;
-    let keys = client.kex(&algs)?;
+fn wg_psk_kex(server: &str, algorithms: &Vec<OqsKexAlg>) -> Result<String> {
+    let mut client = OqsKexClient::new(server)?;
+    let keys = client.kex(&algorithms)?;
 
     let mut hasher = Sha256::default();
     for key in &keys {
