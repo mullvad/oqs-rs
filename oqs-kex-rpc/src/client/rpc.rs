@@ -3,8 +3,7 @@ use oqs::kex::{AliceMsg, BobMsg};
 
 error_chain! {
     errors {
-        CreateHttpTransport { description("failed to create HTTP transport") }
-        RegisterServerEndpoint { description("failed to register server endpoint in transport context") }
+        RpcFailed { description("RPC client returned an error") }
     }
 }
 
@@ -14,8 +13,8 @@ jsonrpc_client!(pub struct OqsKexRpcClient {
 
 impl OqsKexRpcClient<HttpHandle> {
     pub fn connect(addr: &str) -> Result<Self> {
-        let transport = HttpTransport::new().chain_err(|| ErrorKind::CreateHttpTransport)?;
-        let transport_handle = transport.handle(addr).chain_err(|| ErrorKind::RegisterServerEndpoint)?;
+        let transport = HttpTransport::new().chain_err(|| ErrorKind::RpcFailed)?;
+        let transport_handle = transport.handle(addr).chain_err(|| ErrorKind::RpcFailed)?;
         Ok(OqsKexRpcClient::new(transport_handle))
     }
 }
