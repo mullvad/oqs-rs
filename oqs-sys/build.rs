@@ -6,9 +6,9 @@ use std::path::PathBuf;
 fn main() {
     let out_dir = env::var("OUT_DIR").map(PathBuf::from).unwrap();
 
-    let oqs_dir = env::var("OQS_DIR").map(PathBuf::from).expect(
-        "Set the environment variable OQS_DIR to the absolute path to your liboqs dir",
-    );
+    let oqs_dir = env::var("OQS_DIR")
+        .map(PathBuf::from)
+        .expect("Set the environment variable OQS_DIR to the absolute path to your liboqs dir");
     let oqs_include_dir = oqs_dir.join("include");
 
     println!("cargo:rustc-link-lib=oqs");
