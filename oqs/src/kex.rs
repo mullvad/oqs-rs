@@ -88,19 +88,19 @@ impl From<OqsKexAlg> for ffi::OQS_KEX_alg_name {
 
 pub struct OqsKex<'r> {
     _rand: &'r OqsRand,
-    kex_alg: OqsKexAlg,
+    algorithm: OqsKexAlg,
     oqs_kex: *mut ffi::OQS_KEX,
 }
 
 impl<'r> OqsKex<'r> {
-    pub fn new(rand: &'r OqsRand, kex_alg: OqsKexAlg) -> Result<Self> {
-        let ffi_kex_alg = ffi::OQS_KEX_alg_name::from(kex_alg);
+    pub fn new(rand: &'r OqsRand, algorithm: OqsKexAlg) -> Result<Self> {
+        let ffi_kex_alg = ffi::OQS_KEX_alg_name::from(algorithm);
         let oqs_kex =
             unsafe { ffi::OQS_KEX_new(rand.oqs_rand, ffi_kex_alg, ptr::null(), 0, ptr::null()) };
         if oqs_kex != ptr::null_mut() {
             Ok(OqsKex {
                 _rand: rand,
-                kex_alg,
+                algorithm,
                 oqs_kex,
             })
         } else {
@@ -109,7 +109,7 @@ impl<'r> OqsKex<'r> {
     }
 
     pub fn algorithm(&self) -> OqsKexAlg {
-        self.kex_alg
+        self.algorithm
     }
 
     pub fn alice_0<'a>(&'a self) -> Result<OqsKexAlice<'a, 'r>> {
@@ -125,7 +125,8 @@ impl<'r> OqsKex<'r> {
             )
         };
         if result == ffi::SUCCESS {
-            let alice_msg = AliceMsg::new(self.kex_alg, Buf::from_c(alice_msg_ptr, alice_msg_len));
+            let alice_msg_buf = Buf::from_c(alice_msg_ptr, alice_msg_len);
+            let alice_msg = AliceMsg::new(self.algorithm, alice_msg_buf);
             Ok(OqsKexAlice {
                 parent: self,
                 alice_priv,
@@ -154,8 +155,8 @@ impl<'r> OqsKex<'r> {
         };
         if result == ffi::SUCCESS {
             Ok((
-                BobMsg::new(self.kex_alg, Buf::from_c(bob_msg, bob_msg_len)),
-                SharedKey::new(self.kex_alg, Buf::from_c(key, key_len)),
+                BobMsg::new(self.algorithm, Buf::from_c(bob_msg, bob_msg_len)),
+                SharedKey::new(self.algorithm, Buf::from_c(key, key_len)),
             ))
         } else {
             Err(Error)
@@ -194,7 +195,7 @@ impl<'a, 'r> OqsKexAlice<'a, 'r> {
         };
         if result == ffi::SUCCESS {
             Ok(SharedKey::new(
-                self.parent.kex_alg,
+                self.parent.algorithm,
                 Buf::from_c(key, key_len),
             ))
         } else {
@@ -203,7 +204,7 @@ impl<'a, 'r> OqsKexAlice<'a, 'r> {
     }
 
     pub fn algorithm(&self) -> OqsKexAlg {
-        self.parent.kex_alg
+        self.parent.algorithm
     }
 
     pub fn get_alice_msg(&self) -> &AliceMsg {
@@ -223,17 +224,17 @@ impl<'a, 'r> Drop for OqsKexAlice<'a, 'r> {
 #[derive(Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct AliceMsg {
-    kex_alg: OqsKexAlg,
+    algorithm: OqsKexAlg,
     data: Buf,
 }
 
 impl AliceMsg {
-    fn new(kex_alg: OqsKexAlg, data: Buf) -> Self {
-        AliceMsg { kex_alg, data }
+    fn new(algorithm: OqsKexAlg, data: Buf) -> Self {
+        AliceMsg { algorithm, data }
     }
 
     pub fn algorithm(&self) -> OqsKexAlg {
-        self.kex_alg
+        self.algorithm
     }
 
     pub fn data(&self) -> &[u8] {
@@ -250,23 +251,22 @@ impl AsRef<[u8]> for AliceMsg {
 #[derive(Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BobMsg {
-    kex_alg: OqsKexAlg,
+    algorithm: OqsKexAlg,
     data: Buf,
 }
 
 impl BobMsg {
-    fn new(kex_alg: OqsKexAlg, data: Buf) -> Self {
-        BobMsg { kex_alg, data }
+    fn new(algorithm: OqsKexAlg, data: Buf) -> Self {
+        BobMsg { algorithm, data }
     }
 
     pub fn algorithm(&self) -> OqsKexAlg {
-        self.kex_alg
+        self.algorithm
     }
 
     pub fn data(&self) -> &[u8] {
         self.data.data()
     }
-
 }
 
 impl AsRef<[u8]> for BobMsg {
@@ -278,23 +278,22 @@ impl AsRef<[u8]> for BobMsg {
 #[derive(Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SharedKey {
-    kex_alg: OqsKexAlg,
+    algorithm: OqsKexAlg,
     data: Buf,
 }
 
 impl SharedKey {
-    fn new(kex_alg: OqsKexAlg, data: Buf) -> Self {
-        SharedKey { kex_alg, data }
+    fn new(algorithm: OqsKexAlg, data: Buf) -> Self {
+        SharedKey { algorithm, data }
     }
 
     pub fn algorithm(&self) -> OqsKexAlg {
-        self.kex_alg
+        self.algorithm
     }
 
     pub fn data(&self) -> &[u8] {
         self.data.data()
     }
-
 }
 
 impl AsRef<[u8]> for SharedKey {
