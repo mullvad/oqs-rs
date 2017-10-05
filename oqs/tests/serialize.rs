@@ -7,8 +7,8 @@ mod serialize {
 
     #[test]
     fn serialize_alice_msg() {
-        let mut rand = OqsRand::new(OqsRandAlg::default()).unwrap();
-        let mut kex_alice = OqsKex::new(&mut rand, OqsKexAlg::RlweNewhope).unwrap();
+        let rand = OqsRand::new(OqsRandAlg::default()).unwrap();
+        let kex_alice = OqsKex::new(&rand, OqsKexAlg::RlweNewhope).unwrap();
         let kex_alice_0 = kex_alice.alice_0().unwrap();
         let alice_msg = kex_alice_0.get_alice_msg();
 
@@ -28,8 +28,8 @@ mod serialize {
 
     #[test]
     fn serialize_to_string() {
-        let mut rand = OqsRand::new(OqsRandAlg::default()).unwrap();
-        let mut kex_alice = OqsKex::new(&mut rand, OqsKexAlg::Default).unwrap();
+        let rand = OqsRand::new(OqsRandAlg::default()).unwrap();
+        let kex_alice = OqsKex::new(&rand, OqsKexAlg::Default).unwrap();
         let kex_alice_0 = kex_alice.alice_0().unwrap();
         let alice_msg = kex_alice_0.get_alice_msg();
 

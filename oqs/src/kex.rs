@@ -87,13 +87,13 @@ impl From<OqsKexAlg> for ffi::OQS_KEX_alg_name {
 
 
 pub struct OqsKex<'r> {
-    _rand: &'r mut OqsRand,
+    _rand: &'r OqsRand,
     kex_alg: OqsKexAlg,
     oqs_kex: *mut ffi::OQS_KEX,
 }
 
 impl<'r> OqsKex<'r> {
-    pub fn new(rand: &'r mut OqsRand, kex_alg: OqsKexAlg) -> Result<Self, Error> {
+    pub fn new(rand: &'r OqsRand, kex_alg: OqsKexAlg) -> Result<Self, Error> {
         let ffi_kex_alg = ffi::OQS_KEX_alg_name::from(kex_alg);
         let oqs_kex =
             unsafe { ffi::OQS_KEX_new(rand.oqs_rand, ffi_kex_alg, ptr::null(), 0, ptr::null()) };
@@ -112,7 +112,7 @@ impl<'r> OqsKex<'r> {
         self.kex_alg
     }
 
-    pub fn alice_0<'a>(&'a mut self) -> Result<OqsKexAlice<'a, 'r>, Error> {
+    pub fn alice_0<'a>(&'a self) -> Result<OqsKexAlice<'a, 'r>, Error> {
         let mut alice_priv = ptr::null_mut();
         let mut alice_msg_ptr = ptr::null_mut();
         let mut alice_msg_len = 0;
@@ -136,7 +136,7 @@ impl<'r> OqsKex<'r> {
         }
     }
 
-    pub fn bob(&mut self, alice_msg: &AliceMsg) -> Result<(BobMsg, SharedKey), Error> {
+    pub fn bob(&self, alice_msg: &AliceMsg) -> Result<(BobMsg, SharedKey), Error> {
         let mut bob_msg = ptr::null_mut();
         let mut bob_msg_len = 0;
         let mut key = ptr::null_mut();
@@ -173,7 +173,7 @@ pub struct OqsKexAlice<'a, 'r>
 where
     'r: 'a,
 {
-    parent: &'a mut OqsKex<'r>,
+    parent: &'a OqsKex<'r>,
     alice_priv: *mut libc::c_void,
     alice_msg: AliceMsg,
 }
@@ -313,8 +313,8 @@ mod tests {
         ($name:ident, $algo:ident) => (
             #[test]
             fn $name() {
-                let mut rand_alice = OqsRand::new(TEST_RAND_ALG).unwrap();
-                let mut kex_alice = OqsKex::new(&mut rand_alice, OqsKexAlg::$algo).unwrap();
+                let rand_alice = OqsRand::new(TEST_RAND_ALG).unwrap();
+                let kex_alice = OqsKex::new(&rand_alice, OqsKexAlg::$algo).unwrap();
                 let kex_alice_0 = kex_alice.alice_0().unwrap();
 
                 let (bob_msg, key1) = helper_bob(kex_alice_0.get_alice_msg());
@@ -332,8 +332,8 @@ mod tests {
     test_full_kex!(full_kex_sidh_cln16, SidhCln16);
 
     fn helper_bob(alice_msg: &AliceMsg) -> (BobMsg, SharedKey) {
-        let mut rand = OqsRand::new(TEST_RAND_ALG).unwrap();
-        let (bob_msg, shared_key) = OqsKex::new(&mut rand, alice_msg.algorithm())
+        let rand = OqsRand::new(TEST_RAND_ALG).unwrap();
+        let (bob_msg, shared_key) = OqsKex::new(&rand, alice_msg.algorithm())
             .unwrap()
             .bob(alice_msg)
             .unwrap();
