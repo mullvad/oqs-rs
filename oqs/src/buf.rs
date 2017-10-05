@@ -32,14 +32,6 @@ impl Buf {
             Buf::RustAlloc(ref buf) => buf,
         }
     }
-
-    pub fn ptr(&self) -> *const u8 {
-        self.data().as_ptr() as *const u8
-    }
-
-    pub fn len(&self) -> usize {
-        self.data().len()
-    }
 }
 
 impl AsRef<[u8]> for Buf {

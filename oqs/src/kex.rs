@@ -145,8 +145,8 @@ impl<'r> OqsKex<'r> {
         let result = unsafe {
             ffi::OQS_KEX_bob(
                 self.oqs_kex,
-                alice_msg.data.ptr(),
-                alice_msg.data.len(),
+                alice_msg.data().as_ptr(),
+                alice_msg.data().len(),
                 &mut bob_msg,
                 &mut bob_msg_len,
                 &mut key,
@@ -187,8 +187,8 @@ impl<'a, 'r> OqsKexAlice<'a, 'r> {
             ffi::OQS_KEX_alice_1(
                 self.parent.oqs_kex,
                 self.alice_priv,
-                bob_msg.data.ptr(),
-                bob_msg.data.len(),
+                bob_msg.data().as_ptr(),
+                bob_msg.data().len(),
                 &mut key,
                 &mut key_len,
             )
