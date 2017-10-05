@@ -1,6 +1,7 @@
 pub mod rpc;
 
-use oqs::kex::{OqsKexAlg, OqsRandAlg, SharedKey, OqsKex, AliceMsg, BobMsg, OqsKexAlice};
+use oqs;
+use oqs::kex::{AliceMsg, BobMsg, OqsKex, OqsKexAlg, OqsKexAlice, OqsRand, OqsRandAlg, SharedKey};
 use jsonrpc_client_http::HttpHandle;
 
 error_chain! {
@@ -33,38 +34,46 @@ impl OqsKexClient {
     }
 
     pub fn kex(&mut self, algs: &[OqsKexAlg]) -> Result<Vec<SharedKey>> {
-        let alices: Vec<OqsKexAlice> = self.initialize_kex(algs)?;
-
-        let bob_msgs: Vec<BobMsg> = {
-            let alice_msgs: Vec<&AliceMsg> = alices.iter().map(|alice| alice.get_alice_msg()).collect();
-            self.rpc_client.kex(&alice_msgs).call().chain_err(|| ErrorKind::RpcError)?
-        };
-
-        ensure!(alices.len() == bob_msgs.len(), ErrorKind::InvalidResponse);
-
-        self.finalize_kex(alices, &bob_msgs)
+        let rand = OqsRand::new(self.rand).chain_err(|| ErrorKind::RpcError)?;
+        let kexs = self.init_kex(&rand, algs)?;
+        let alice_kexs = Self::alice_0(&kexs)?;
+        let bob_msgs = self.perform_rpc(&alice_kexs)?;
+        ensure!(
+            alice_kexs.len() == bob_msgs.len(),
+            ErrorKind::InvalidResponse
+        );
+        Self::alice_1(alice_kexs, &bob_msgs)
     }
 
-    fn initialize_kex(&mut self, algs: &[OqsKexAlg]) -> Result<Vec<OqsKexAlice>> {
-        let mut alices: Vec<OqsKexAlice> = Vec::new();
-
-        for alg in algs {
-           let oqskex = OqsKex::new(self.rand, *alg).chain_err(|| ErrorKind::OqsError)?;
-           let alice = oqskex.alice_0().chain_err(|| ErrorKind::OqsError)?;
-           alices.push(alice);
-        }
-
-        Ok(alices)
+    fn init_kex<'r>(&self, rand: &'r OqsRand, algs: &[OqsKexAlg]) -> Result<Vec<OqsKex<'r>>> {
+        algs.iter()
+            .map(|alg| OqsKex::new(&rand, *alg))
+            .collect::<oqs::kex::Result<_>>()
+            .chain_err(|| ErrorKind::OqsError)
     }
 
-    fn finalize_kex(&mut self, alices: Vec<OqsKexAlice>, bob_msgs: &Vec<BobMsg>) -> Result<Vec<SharedKey>> {
-        let mut keys: Vec<SharedKey> = Vec::new();
+    fn alice_0<'a, 'r>(kexs: &'a [OqsKex<'r>]) -> Result<Vec<OqsKexAlice<'a, 'r>>> {
+        kexs.iter()
+            .map(|kex| kex.alice_0())
+            .collect::<oqs::kex::Result<_>>()
+            .chain_err(|| ErrorKind::OqsError)
+    }
 
-        for (alice, bob_msg) in alices.into_iter().zip(bob_msgs) {
-            let key = alice.alice_1(&bob_msg).chain_err(|| ErrorKind::OqsError)?;
-            keys.push(key);
-        }
+    fn alice_1(alice_kexs: Vec<OqsKexAlice>, bob_msgs: &[BobMsg]) -> Result<Vec<SharedKey>> {
+        alice_kexs
+            .into_iter()
+            .zip(bob_msgs)
+            .map(|(alice_kex, bob_msg)| alice_kex.alice_1(&bob_msg))
+            .collect::<oqs::kex::Result<_>>()
+            .chain_err(|| ErrorKind::OqsError)
+    }
 
-        Ok(keys)
+    fn perform_rpc(&mut self, alice_kexs: &[OqsKexAlice]) -> Result<Vec<BobMsg>> {
+        let alice_msgs: Vec<&AliceMsg> =
+            alice_kexs.iter().map(OqsKexAlice::get_alice_msg).collect();
+        self.rpc_client
+            .kex(&alice_msgs)
+            .call()
+            .chain_err(|| ErrorKind::RpcError)
     }
 }

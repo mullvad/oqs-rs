@@ -1,4 +1,4 @@
-use jsonrpc_client_http::{HttpTransport, HttpHandle};
+use jsonrpc_client_http::{HttpHandle, HttpTransport};
 use oqs::kex::{AliceMsg, BobMsg};
 
 error_chain! {
