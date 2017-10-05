@@ -328,6 +328,7 @@ mod tests {
         )
     }
 
+    test_full_kex!(full_kex_default, Default);
     test_full_kex!(full_kex_rlwe_newhope, RlweNewhope);
     test_full_kex!(full_kex_code_mcbits, CodeMcbits);
     test_full_kex!(full_kex_sidh_cln16, SidhCln16);
