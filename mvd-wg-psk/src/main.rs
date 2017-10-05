@@ -7,40 +7,34 @@ extern crate base64;
 
 use oqs::kex::OqsKexAlg;
 use oqs_kex_rpc::client::OqsKexClient;
-use sha2::{Sha256, Digest};
+use sha2::{Sha512Trunc256, Digest};
 
 error_chain! {
-    foreign_links {
-        KeyExchangeFailed(::oqs_kex_rpc::client::Error);
+    links {
+        KeyExchangeFailed(::oqs_kex_rpc::client::Error, ::oqs_kex_rpc::client::ErrorKind);
     }
 }
 
 fn main() {
-    let exit_code = real_main();
-    std::process::exit(exit_code);
+    quick_main!(run);
 }
 
-fn real_main() -> i32 {
-    let server = String::from("10.99.0.1:1984");
-    let algs = vec![OqsKexAlg::RlweNewhope, OqsKexAlg::CodeMcbits, OqsKexAlg::SidhCln16];
+fn run() -> Result<()> {
+    let server = "10.99.0.1:1984";
+    let algs = [OqsKexAlg::RlweNewhope, OqsKexAlg::CodeMcbits, OqsKexAlg::SidhCln16];
 
-    match wg_psk_kex(&server, &algs) {
-        Ok(psk) => {
+    full_key_exchange(&server, &algs)
+        .and_then(|psk| {
             println!("{}", psk);
-            return 0;
-        }
-        Err(error) => {
-            println!("Error: {}", error);
-            return 1;
-        }
-   }
+            Ok(())
+        })
 }
 
-fn wg_psk_kex(server: &str, algorithms: &Vec<OqsKexAlg>) -> Result<String> {
+fn full_key_exchange(server: &str, algorithms: &[OqsKexAlg]) -> Result<String> {
     let mut client = OqsKexClient::new(server)?;
-    let keys = client.kex(&algorithms)?;
+    let keys = client.kex(algorithms)?;
 
-    let mut hasher = Sha256::default();
+    let mut hasher = Sha512Trunc256::default();
     for key in &keys {
         hasher.input(key.data());
     }
