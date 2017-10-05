@@ -1,7 +1,6 @@
 pub mod rpc;
 
 use oqs::kex::{OqsKexAlg, OqsRandAlg, SharedKey, OqsKex, AliceMsg, BobMsg, OqsKexAlice};
-use jsonrpc_client_core;
 use jsonrpc_client_http::HttpHandle;
 
 error_chain! {
