@@ -3,7 +3,7 @@ use oqs::kex::{AliceMsg, BobMsg};
 
 error_chain! {
     errors {
-        RpcFailed { description("RPC client returned an error") }
+        RpcInitError { description("RPC client could not be initialized") }
     }
 }
 
@@ -13,8 +13,8 @@ jsonrpc_client!(pub struct OqsKexRpcClient {
 
 impl OqsKexRpcClient<HttpHandle> {
     pub fn connect(addr: &str) -> Result<Self> {
-        let transport = HttpTransport::new().chain_err(|| ErrorKind::RpcFailed)?;
-        let transport_handle = transport.handle(addr).chain_err(|| ErrorKind::RpcFailed)?;
+        let transport = HttpTransport::new().chain_err(|| ErrorKind::RpcInitError)?;
+        let transport_handle = transport.handle(addr).chain_err(|| ErrorKind::RpcInitError)?;
         Ok(OqsKexRpcClient::new(transport_handle))
     }
 }

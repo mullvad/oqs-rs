@@ -1,12 +1,14 @@
 pub mod rpc;
 
 use oqs::kex::{OqsKexAlg, OqsRandAlg, SharedKey, OqsKex, AliceMsg, BobMsg, OqsKexAlice};
+use jsonrpc_client_core;
 use jsonrpc_client_http::HttpHandle;
 
 error_chain! {
     errors {
-        RpcFailed { description("RPC client returned an error") }
-        OqsFailed { description("Oqs returned an error") }
+        RpcError { description("Unspecified RPC error") }
+        RpcResponseError { description("RPC response is syntactically valid but unexpected") }
+        OqsError { description("Unspecified Oqs error") }
     }
 }
 
@@ -17,7 +19,7 @@ pub struct OqsKexClient {
 
 impl OqsKexClient {
     pub fn new(addr: &str) -> Result<Self> {
-        let rpc_client = rpc::OqsKexRpcClient::connect(addr).chain_err(|| ErrorKind::RpcFailed)?;
+        let rpc_client = rpc::OqsKexRpcClient::connect(addr).chain_err(|| ErrorKind::RpcError)?;
 
         let client = OqsKexClient {
             rpc_client,
@@ -36,10 +38,10 @@ impl OqsKexClient {
 
         let bob_msgs: Vec<BobMsg> = {
             let alice_msgs: Vec<&AliceMsg> = alices.iter().map(|alice| alice.get_alice_msg()).collect();
-            self.rpc_client.kex(&alice_msgs).call().chain_err(|| ErrorKind::RpcFailed)?
+            self.rpc_client.kex(&alice_msgs).call().chain_err(|| ErrorKind::RpcError)?
         };
 
-        ensure!(alices.len() == bob_msgs.len(), ErrorKind::RpcFailed);
+        ensure!(alices.len() == bob_msgs.len(), ErrorKind::RpcResponseError);
 
         self.finalize_kex(alices, &bob_msgs)
     }
@@ -48,8 +50,8 @@ impl OqsKexClient {
         let mut alices: Vec<OqsKexAlice> = Vec::new();
 
         for alg in algs {
-           let oqskex = OqsKex::new(self.rand, *alg).chain_err(|| ErrorKind::OqsFailed)?;
-           let alice = oqskex.alice_0().chain_err(|| ErrorKind::OqsFailed)?;
+           let oqskex = OqsKex::new(self.rand, *alg).chain_err(|| ErrorKind::OqsError)?;
+           let alice = oqskex.alice_0().chain_err(|| ErrorKind::OqsError)?;
            alices.push(alice);
         }
 
@@ -60,7 +62,7 @@ impl OqsKexClient {
         let mut keys: Vec<SharedKey> = Vec::new();
 
         for (alice, bob_msg) in alices.into_iter().zip(bob_msgs) {
-            let key = alice.alice_1(&bob_msg).chain_err(|| ErrorKind::OqsFailed)?;
+            let key = alice.alice_1(&bob_msg).chain_err(|| ErrorKind::OqsError)?;
             keys.push(key);
         }
 
