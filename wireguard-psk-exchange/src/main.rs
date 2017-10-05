@@ -15,9 +15,7 @@ error_chain! {
     }
 }
 
-fn main() {
-    quick_main!(run);
-}
+quick_main!(run);
 
 fn run() -> Result<()> {
     let server = "10.99.0.1:1984";
