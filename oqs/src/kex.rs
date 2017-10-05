@@ -32,7 +32,7 @@ pub struct OqsRand {
 }
 
 impl OqsRand {
-    pub fn new(algorithm: OqsRandAlg) -> Result<Self, Error> {
+    pub fn new(algorithm: OqsRandAlg) -> Result<Self> {
         let oqs_rand = unsafe { ffi::OQS_RAND_new(ffi::OQS_RAND_alg_name::from(algorithm)) };
         if oqs_rand != ptr::null_mut() {
             Ok(OqsRand {
@@ -93,7 +93,7 @@ pub struct OqsKex<'r> {
 }
 
 impl<'r> OqsKex<'r> {
-    pub fn new(rand: &'r OqsRand, kex_alg: OqsKexAlg) -> Result<Self, Error> {
+    pub fn new(rand: &'r OqsRand, kex_alg: OqsKexAlg) -> Result<Self> {
         let ffi_kex_alg = ffi::OQS_KEX_alg_name::from(kex_alg);
         let oqs_kex =
             unsafe { ffi::OQS_KEX_new(rand.oqs_rand, ffi_kex_alg, ptr::null(), 0, ptr::null()) };
@@ -112,7 +112,7 @@ impl<'r> OqsKex<'r> {
         self.kex_alg
     }
 
-    pub fn alice_0<'a>(&'a self) -> Result<OqsKexAlice<'a, 'r>, Error> {
+    pub fn alice_0<'a>(&'a self) -> Result<OqsKexAlice<'a, 'r>> {
         let mut alice_priv = ptr::null_mut();
         let mut alice_msg_ptr = ptr::null_mut();
         let mut alice_msg_len = 0;
@@ -136,7 +136,7 @@ impl<'r> OqsKex<'r> {
         }
     }
 
-    pub fn bob(&self, alice_msg: &AliceMsg) -> Result<(BobMsg, SharedKey), Error> {
+    pub fn bob(&self, alice_msg: &AliceMsg) -> Result<(BobMsg, SharedKey)> {
         let mut bob_msg = ptr::null_mut();
         let mut bob_msg_len = 0;
         let mut key = ptr::null_mut();
@@ -179,7 +179,7 @@ where
 }
 
 impl<'a, 'r> OqsKexAlice<'a, 'r> {
-    pub fn alice_1(self, bob_msg: &BobMsg) -> Result<SharedKey, Error> {
+    pub fn alice_1(self, bob_msg: &BobMsg) -> Result<SharedKey> {
         let mut key = ptr::null_mut();
         let mut key_len = 0;
         let result = unsafe {
@@ -284,12 +284,13 @@ impl SharedKey {
 }
 
 
+pub type Result<T> = ::std::result::Result<T, Error>;
 
 #[derive(Debug, Copy, Clone, Hash)]
 pub struct Error;
 
 impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
         use std::error::Error;
         self.description().fmt(f)
     }
