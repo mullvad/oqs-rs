@@ -1,5 +1,5 @@
 [package]
-name = "mvd-wg-psk"
+name = "wireguard-psk-exchange"
 version = "0.1.0"
 authors = ["Mullvad VPN <admin@mullvad.net>", "Linus Färnstrand <faern@faern.net>", "Odd Stranne <odd@mullvad.net>"]
 license = "MIT/Apache-2.0"
