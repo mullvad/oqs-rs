@@ -6,9 +6,9 @@ use jsonrpc_client_http::HttpHandle;
 
 error_chain! {
     errors {
-        RpcError { description("Unspecified RPC error") }
-        RpcResponseError { description("RPC response is syntactically valid but unexpected") }
-        OqsError { description("Unspecified Oqs error") }
+        RpcError { description("RPC client returned an error") }
+        InvalidResponse { description("RPC response is syntactically valid but unexpected") }
+        OqsError { description("Oqs returned an error") }
     }
 }
 
@@ -41,7 +41,7 @@ impl OqsKexClient {
             self.rpc_client.kex(&alice_msgs).call().chain_err(|| ErrorKind::RpcError)?
         };
 
-        ensure!(alices.len() == bob_msgs.len(), ErrorKind::RpcResponseError);
+        ensure!(alices.len() == bob_msgs.len(), ErrorKind::InvalidResponse);
 
         self.finalize_kex(alices, &bob_msgs)
     }
