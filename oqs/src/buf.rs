@@ -73,3 +73,54 @@ impl Drop for Buf {
         }
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::mem;
+
+    #[test]
+    fn rust_eq_rust() {
+        let buf1 = Buf::RustAlloc(vec![3, 8, 55].into_boxed_slice());
+        let buf2 = Buf::RustAlloc(vec![3, 8, 55].into_boxed_slice());
+        let buf3 = Buf::RustAlloc(vec![9, 99, 0, 0, 0, 1].into_boxed_slice());
+
+        assert_eq!(buf1, buf2);
+        assert_ne!(buf1, buf3);
+        assert_eq!(buf1.as_ref(), &[3, 8, 55]);
+    }
+
+    #[test]
+    fn rust_eq_c() {
+        let rust_buf = Buf::RustAlloc(vec![0, 9, 2, 200].into_boxed_slice());
+        let c_buf = Buf::CAlloc(Some(vec![0, 9, 2, 200].into_boxed_slice()));
+
+        assert_eq!(rust_buf, c_buf);
+        assert_eq!(c_buf.as_ref(), &[0, 9, 2, 200]);
+        mem::forget(c_buf);
+    }
+
+    #[test]
+    fn from_c() {
+        let mut data = vec![5, 53, 19];
+        let buf = Buf::from_c(data.as_mut_ptr(), 3);
+        let expected = Buf::CAlloc(Some(vec![5, 53, 19].into_boxed_slice()));
+
+        assert_eq!(buf, expected);
+        mem::forget(buf);
+        mem::forget(expected);
+    }
+
+    #[test]
+    fn clone() {
+        let mut data = vec![5, 53, 19];
+        let c_buf = Buf::from_c(data.as_mut_ptr(), 3);
+        let rust_buf = c_buf.clone();
+
+        assert_eq!(c_buf, rust_buf);
+        assert_ne!(c_buf.as_ref().as_ptr(), rust_buf.as_ref().as_ptr());
+        assert_eq!(rust_buf, Buf::RustAlloc(vec![5, 53, 19].into_boxed_slice()));
+        mem::forget(c_buf);
+    }
+}
