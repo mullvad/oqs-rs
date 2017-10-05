@@ -42,6 +42,12 @@ impl Buf {
     }
 }
 
+impl AsRef<[u8]> for Buf {
+    fn as_ref(&self) -> &[u8] {
+        self.data()
+    }
+}
+
 impl Clone for Buf {
     fn clone(&self) -> Self {
         Buf::RustAlloc(self.data().to_vec().into_boxed_slice())

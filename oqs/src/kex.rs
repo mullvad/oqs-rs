@@ -241,6 +241,12 @@ impl AliceMsg {
     }
 }
 
+impl AsRef<[u8]> for AliceMsg {
+    fn as_ref(&self) -> &[u8] {
+        self.data.as_ref()
+    }
+}
+
 #[derive(Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BobMsg {
@@ -259,6 +265,13 @@ impl BobMsg {
 
     pub fn data(&self) -> &[u8] {
         self.data.data()
+    }
+
+}
+
+impl AsRef<[u8]> for BobMsg {
+    fn as_ref(&self) -> &[u8] {
+        self.data.as_ref()
     }
 }
 
@@ -280,6 +293,13 @@ impl SharedKey {
 
     pub fn data(&self) -> &[u8] {
         self.data.data()
+    }
+
+}
+
+impl AsRef<[u8]> for SharedKey {
+    fn as_ref(&self) -> &[u8] {
+        self.data.as_ref()
     }
 }
 
@@ -323,7 +343,7 @@ mod tests {
                 let key2 = kex_alice_0.alice_1(&bob_msg).unwrap();
 
                 assert!(!key1.data().is_empty());
-                assert_eq!(key1.data(), key2.data());
+                assert_eq!(key1, key2);
             }
         )
     }
