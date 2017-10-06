@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate error_chain;
-
+extern crate futures;
+#[macro_use]
+extern crate log;
 extern crate oqs;
 
 #[macro_use]
