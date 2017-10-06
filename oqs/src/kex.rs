@@ -32,7 +32,7 @@ pub struct OqsRand {
 }
 
 impl OqsRand {
-    pub fn new(algorithm: OqsRandAlg) -> Result<Self, Error> {
+    pub fn new(algorithm: OqsRandAlg) -> Result<Self> {
         let oqs_rand = unsafe { ffi::OQS_RAND_new(ffi::OQS_RAND_alg_name::from(algorithm)) };
         if oqs_rand != ptr::null_mut() {
             Ok(OqsRand {
@@ -86,15 +86,14 @@ impl From<OqsKexAlg> for ffi::OQS_KEX_alg_name {
 }
 
 
-pub struct OqsKex {
-    _rand: OqsRand,
+pub struct OqsKex<'r> {
+    _rand: &'r OqsRand,
     kex_alg: OqsKexAlg,
     oqs_kex: *mut ffi::OQS_KEX,
 }
 
-impl OqsKex {
-    pub fn new(rand_alg: OqsRandAlg, kex_alg: OqsKexAlg) -> Result<Self, Error> {
-        let rand = OqsRand::new(rand_alg)?;
+impl<'r> OqsKex<'r> {
+    pub fn new(rand: &'r OqsRand, kex_alg: OqsKexAlg) -> Result<Self> {
         let ffi_kex_alg = ffi::OQS_KEX_alg_name::from(kex_alg);
         let oqs_kex =
             unsafe { ffi::OQS_KEX_new(rand.oqs_rand, ffi_kex_alg, ptr::null(), 0, ptr::null()) };
@@ -113,31 +112,31 @@ impl OqsKex {
         self.kex_alg
     }
 
-    pub fn alice_0(self) -> Result<OqsKexAlice, Error> {
+    pub fn alice_0<'a>(&'a self) -> Result<OqsKexAlice<'a, 'r>> {
         let mut alice_priv = ptr::null_mut();
-        let mut alice_msg = ptr::null_mut();
+        let mut alice_msg_ptr = ptr::null_mut();
         let mut alice_msg_len = 0;
         let result = unsafe {
             ffi::OQS_KEX_alice_0(
                 self.oqs_kex,
                 &mut alice_priv,
-                &mut alice_msg,
+                &mut alice_msg_ptr,
                 &mut alice_msg_len,
             )
         };
         if result == ffi::SUCCESS {
-            let kex_alg = self.kex_alg;
+            let alice_msg = AliceMsg::new(self.kex_alg, Buf::from_c(alice_msg_ptr, alice_msg_len));
             Ok(OqsKexAlice {
                 parent: self,
                 alice_priv,
-                alice_msg: AliceMsg::new(kex_alg, Buf::from_c(alice_msg, alice_msg_len)),
+                alice_msg,
             })
         } else {
             Err(Error)
         }
     }
 
-    pub fn bob(self, alice_msg: &AliceMsg) -> Result<(BobMsg, SharedKey), Error> {
+    pub fn bob(&self, alice_msg: &AliceMsg) -> Result<(BobMsg, SharedKey)> {
         let mut bob_msg = ptr::null_mut();
         let mut bob_msg_len = 0;
         let mut key = ptr::null_mut();
@@ -164,20 +163,23 @@ impl OqsKex {
     }
 }
 
-impl Drop for OqsKex {
+impl<'r> Drop for OqsKex<'r> {
     fn drop(&mut self) {
         unsafe { ffi::OQS_KEX_free(self.oqs_kex) };
     }
 }
 
-pub struct OqsKexAlice {
-    parent: OqsKex,
+pub struct OqsKexAlice<'a, 'r>
+where
+    'r: 'a,
+{
+    parent: &'a OqsKex<'r>,
     alice_priv: *mut libc::c_void,
     alice_msg: AliceMsg,
 }
 
-impl OqsKexAlice {
-    pub fn alice_1(self, bob_msg: &BobMsg) -> Result<SharedKey, Error> {
+impl<'a, 'r> OqsKexAlice<'a, 'r> {
+    pub fn alice_1(self, bob_msg: &BobMsg) -> Result<SharedKey> {
         let mut key = ptr::null_mut();
         let mut key_len = 0;
         let result = unsafe {
@@ -209,7 +211,7 @@ impl OqsKexAlice {
     }
 }
 
-impl Drop for OqsKexAlice {
+impl<'a, 'r> Drop for OqsKexAlice<'a, 'r> {
     fn drop(&mut self) {
         unsafe {
             ffi::OQS_KEX_alice_priv_free(self.parent.oqs_kex, self.alice_priv);
@@ -282,12 +284,13 @@ impl SharedKey {
 }
 
 
+pub type Result<T> = ::std::result::Result<T, Error>;
 
 #[derive(Debug, Copy, Clone, Hash)]
 pub struct Error;
 
 impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
         use std::error::Error;
         self.description().fmt(f)
     }
@@ -311,23 +314,16 @@ mod tests {
         ($name:ident, $algo:ident) => (
             #[test]
             fn $name() {
-                let kex_alice = OqsKex::new(TEST_RAND_ALG, OqsKexAlg::$algo)
-                    .unwrap()
-                    .alice_0()
-                    .unwrap();
+                let rand_alice = OqsRand::new(TEST_RAND_ALG).unwrap();
+                let kex_alice = OqsKex::new(&rand_alice, OqsKexAlg::$algo).unwrap();
+                let kex_alice_0 = kex_alice.alice_0().unwrap();
 
-                let (bob_msg, shared_key1) = OqsKex::new(TEST_RAND_ALG, OqsKexAlg::$algo)
-                    .unwrap()
-                    .bob(kex_alice.get_alice_msg())
-                    .unwrap();
+                let (bob_msg, key1) = helper_bob(kex_alice_0.get_alice_msg());
 
-                let shared_key2 = kex_alice.alice_1(&bob_msg).unwrap();
+                let key2 = kex_alice_0.alice_1(&bob_msg).unwrap();
 
-                let key1 = shared_key1.data();
-                let key2 = shared_key2.data();
-
-                assert!(!key1.is_empty());
-                assert_eq!(key1, key2);
+                assert!(!key1.data().is_empty());
+                assert_eq!(key1.data(), key2.data());
             }
         )
     }
@@ -336,4 +332,12 @@ mod tests {
     test_full_kex!(full_kex_code_mcbits, CodeMcbits);
     test_full_kex!(full_kex_sidh_cln16, SidhCln16);
 
+    fn helper_bob(alice_msg: &AliceMsg) -> (BobMsg, SharedKey) {
+        let rand = OqsRand::new(TEST_RAND_ALG).unwrap();
+        let (bob_msg, shared_key) = OqsKex::new(&rand, alice_msg.algorithm())
+            .unwrap()
+            .bob(alice_msg)
+            .unwrap();
+        (bob_msg, shared_key)
+    }
 }

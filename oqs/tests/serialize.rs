@@ -3,15 +3,14 @@ mod serialize {
     extern crate oqs;
     extern crate serde_json;
 
-    use self::oqs::kex::{AliceMsg, OqsKex, OqsKexAlg, OqsRandAlg};
+    use self::oqs::kex::{AliceMsg, OqsKex, OqsKexAlg, OqsRand, OqsRandAlg};
 
     #[test]
     fn serialize_alice_msg() {
-        let kex_alice = OqsKex::new(OqsRandAlg::default(), OqsKexAlg::RlweNewhope)
-            .unwrap()
-            .alice_0()
-            .unwrap();
-        let alice_msg = kex_alice.get_alice_msg();
+        let rand = OqsRand::new(OqsRandAlg::default()).unwrap();
+        let kex_alice = OqsKex::new(&rand, OqsKexAlg::RlweNewhope).unwrap();
+        let kex_alice_0 = kex_alice.alice_0().unwrap();
+        let alice_msg = kex_alice_0.get_alice_msg();
 
         let json_value = serde_json::to_value(alice_msg).unwrap();
         let json_object = json_value.as_object().unwrap();
@@ -29,11 +28,10 @@ mod serialize {
 
     #[test]
     fn serialize_to_string() {
-        let kex_alice = OqsKex::new(OqsRandAlg::default(), OqsKexAlg::RlweNewhope)
-            .unwrap()
-            .alice_0()
-            .unwrap();
-        let alice_msg = kex_alice.get_alice_msg();
+        let rand = OqsRand::new(OqsRandAlg::default()).unwrap();
+        let kex_alice = OqsKex::new(&rand, OqsKexAlg::Default).unwrap();
+        let kex_alice_0 = kex_alice.alice_0().unwrap();
+        let alice_msg = kex_alice_0.get_alice_msg();
 
         let json_string = serde_json::to_string(alice_msg).unwrap();
         println!("AliceMsg in json: {}", json_string);
