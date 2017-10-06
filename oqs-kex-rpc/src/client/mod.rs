@@ -5,12 +5,9 @@ use jsonrpc_client_http::HttpHandle;
 
 error_chain! {
     errors {
-        CreateRpcClient { description("failed to create RPC client") }
-        CreateNativeKex { description("failed to create native kex object") }
-        InitializeNativeKex { description("failed to initialize native kex object") }
-        ServerComms { description("server communications failed") }
-        ServerResponse { description("invalid server response") }
-        FinalizeKex { description("failed to finalize kex") }
+        RpcError { description("RPC client returned an error") }
+        InvalidResponse { description("RPC response is syntactically valid but unexpected") }
+        OqsError { description("Oqs returned an error") }
     }
 }
 
@@ -21,7 +18,7 @@ pub struct OqsKexClient {
 
 impl OqsKexClient {
     pub fn new(addr: &str) -> Result<Self> {
-        let rpc_client = rpc::OqsKexRpcClient::connect(addr).chain_err(|| ErrorKind::CreateRpcClient)?;
+        let rpc_client = rpc::OqsKexRpcClient::connect(addr).chain_err(|| ErrorKind::RpcError)?;
 
         let client = OqsKexClient {
             rpc_client,
@@ -40,10 +37,10 @@ impl OqsKexClient {
 
         let bob_msgs: Vec<BobMsg> = {
             let alice_msgs: Vec<&AliceMsg> = alices.iter().map(|alice| alice.get_alice_msg()).collect();
-            self.rpc_client.kex(&alice_msgs).call().chain_err(|| ErrorKind::ServerComms)?
+            self.rpc_client.kex(&alice_msgs).call().chain_err(|| ErrorKind::RpcError)?
         };
 
-        ensure!(alices.len() == bob_msgs.len(), ErrorKind::ServerResponse);
+        ensure!(alices.len() == bob_msgs.len(), ErrorKind::InvalidResponse);
 
         self.finalize_kex(alices, &bob_msgs)
     }
@@ -52,8 +49,8 @@ impl OqsKexClient {
         let mut alices: Vec<OqsKexAlice> = Vec::new();
 
         for alg in algs {
-           let oqskex = OqsKex::new(self.rand, *alg).chain_err(|| ErrorKind::CreateNativeKex)?;
-           let alice = oqskex.alice_0().chain_err(|| ErrorKind::InitializeNativeKex)?;
+           let oqskex = OqsKex::new(self.rand, *alg).chain_err(|| ErrorKind::OqsError)?;
+           let alice = oqskex.alice_0().chain_err(|| ErrorKind::OqsError)?;
            alices.push(alice);
         }
 
@@ -64,7 +61,7 @@ impl OqsKexClient {
         let mut keys: Vec<SharedKey> = Vec::new();
 
         for (alice, bob_msg) in alices.into_iter().zip(bob_msgs) {
-            let key = alice.alice_1(&bob_msg).chain_err(|| ErrorKind::FinalizeKex)?;
+            let key = alice.alice_1(&bob_msg).chain_err(|| ErrorKind::OqsError)?;
             keys.push(key);
         }
 
