@@ -11,7 +11,8 @@ mod serialize {
     extern crate oqs;
     extern crate serde_json;
 
-    use self::oqs::kex::{AliceMsg, OqsKex, OqsKexAlg, OqsRand, OqsRandAlg};
+    use self::oqs::kex::{AliceMsg, OqsKex, OqsKexAlg};
+    use self::oqs::rand::{OqsRand, OqsRandAlg};
 
     #[test]
     fn serialize_alice_msg() {
