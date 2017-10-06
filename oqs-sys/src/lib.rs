@@ -6,6 +6,18 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+//! FFI bindings to [liboqs] - Open Quantum Safe. [liboqs] is a C library for quantum-resistant
+//! cryptographic algorithms.
+//!
+//! This library is just [bindgen] generated bindings to [liboqs]. See the [oqs] crate for a safe
+//! abstraction.
+//!
+//! This library supports `no_std` and can thus be used without the Rust standard library.
+//!
+//! [liboqs]: https://github.com/open-quantum-safe/liboqs
+//! [bindgen]: https://crates.io/crates/bindgen
+//! [oqs]: https://github.com/mullvad/oqs-rs
+
 #![no_std]
 
 extern crate libc;
