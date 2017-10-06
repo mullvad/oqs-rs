@@ -8,7 +8,8 @@
 
 use futures;
 use oqs;
-use oqs::kex::{AliceMsg, BobMsg, OqsKex, OqsRand, OqsRandAlg, SharedKey};
+use oqs::kex::{AliceMsg, BobMsg, OqsKex, SharedKey};
+use oqs::rand::{OqsRand, OqsRandAlg};
 
 use std::net::SocketAddr;
 use std::marker::PhantomData;
