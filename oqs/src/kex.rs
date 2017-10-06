@@ -6,6 +6,16 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+//!
+//! This module has the types used to perform key exchange between two parties. These two parties
+//! are denoted Alice and Bob in [liboqs] so this library will use the same terminology. Out of
+//! these two parties, Alice is the one initiating a key exchange operation.
+//!
+//! See the [`OqsKex`] struct for details on key exchange.
+//!
+//! [liboqs]: https://github.com/open-quantum-safe/liboqs
+//! [`OqsKex`]: struct.OqsKex.html
+
 use libc;
 use core::{mem, ptr};
 use std::fmt;
@@ -13,6 +23,8 @@ use std::fmt;
 use oqs_sys::kex as ffi;
 use buf::Buf;
 
+
+/// Enum representation of the supported PRNG algorithms.
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -40,6 +52,7 @@ pub struct OqsRand {
 }
 
 impl OqsRand {
+    /// Initializes and returns a new PRNG based on the given algorithm.
     pub fn new(algorithm: OqsRandAlg) -> Result<Self> {
         let oqs_rand = unsafe { ffi::OQS_RAND_new(ffi::OQS_RAND_alg_name::from(algorithm)) };
         if oqs_rand != ptr::null_mut() {
@@ -52,6 +65,7 @@ impl OqsRand {
         }
     }
 
+    /// Returns the algorithm backing this PRNG.
     pub fn algorithm(&self) -> OqsRandAlg {
         self.algorithm
     }
@@ -64,6 +78,7 @@ impl Drop for OqsRand {
 }
 
 
+/// Enum representation of the supported key exchange algorithms.
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -101,6 +116,7 @@ pub struct OqsKex<'r> {
 }
 
 impl<'r> OqsKex<'r> {
+    /// Initializes and returns a new OQS key exchange instance.
     pub fn new(rand: &'r OqsRand, algorithm: OqsKexAlg) -> Result<Self> {
         let ffi_kex_alg = ffi::OQS_KEX_alg_name::from(algorithm);
         let oqs_kex =
@@ -116,10 +132,21 @@ impl<'r> OqsKex<'r> {
         }
     }
 
+    /// Returns the key exchange algorithm used by this instance.
     pub fn algorithm(&self) -> OqsKexAlg {
         self.algorithm
     }
 
+    /// Method for doing Alice's first step in the key exchange.
+    ///
+    /// If the operation is successful, an [`OqsKexAlice`] is returned. The returned struct can be
+    /// used to retreive [Alice's public message], and to perform the [finalizing step] of the key
+    /// exchange that will finally yield the [shared secret key].
+    ///
+    /// [`OqsKexAlice`]: struct.OqsKexAlice.html
+    /// [Alice's public message]: struct.AliceMsg.html
+    /// [finalizing step]: struct.OqsKexAlice.html#method.alice_1
+    /// [shared secret key]: struct.SharedKey.html
     pub fn alice_0<'a>(&'a self) -> Result<OqsKexAlice<'a, 'r>> {
         let mut alice_priv = ptr::null_mut();
         let mut alice_msg_ptr = ptr::null_mut();
@@ -145,6 +172,12 @@ impl<'r> OqsKex<'r> {
         }
     }
 
+    /// Key exchange method for Bob. When given [Alice's public message], this method computes
+    /// [Bob's public message] and the final [shared secret key].
+    ///
+    /// [Alice's public message]: struct.AliceMsg.html
+    /// [Bob's public message]: struct.BobMsg.html
+    /// [shared secret key]: struct.SharedKey.html
     pub fn bob(&self, alice_msg: &AliceMsg) -> Result<(BobMsg, SharedKey)> {
         let mut bob_msg = ptr::null_mut();
         let mut bob_msg_len = 0;
@@ -178,6 +211,9 @@ impl<'r> Drop for OqsKex<'r> {
     }
 }
 
+
+/// Struct representing the intermediate key exchange state for Alice. This struct contains the
+/// public message to send to Bob and the method used to finalize the key exchange.
 pub struct OqsKexAlice<'a, 'r>
 where
     'r: 'a,
@@ -188,6 +224,11 @@ where
 }
 
 impl<'a, 'r> OqsKexAlice<'a, 'r> {
+    /// Method for doing Alice's second, and last, step in the key exchange. When given [Bob's
+    /// public message], this method computes the final [shared secret key].
+    ///
+    /// [Bob's public message]: struct.BobMsg.html
+    /// [shared secret key]: struct.SharedKey.html
     pub fn alice_1(self, bob_msg: &BobMsg) -> Result<SharedKey> {
         let mut key = ptr::null_mut();
         let mut key_len = 0;
@@ -211,10 +252,12 @@ impl<'a, 'r> OqsKexAlice<'a, 'r> {
         }
     }
 
+    /// Returns the key exchange algorithm used by this instance.
     pub fn algorithm(&self) -> OqsKexAlg {
         self.parent.algorithm
     }
 
+    /// Return Alice's public message, the data that should be sent over to bob.
     pub fn get_alice_msg(&self) -> &AliceMsg {
         &self.alice_msg
     }
@@ -229,6 +272,7 @@ impl<'a, 'r> Drop for OqsKexAlice<'a, 'r> {
 }
 
 
+/// Alice's message (public key + optional additional data)
 #[derive(Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct AliceMsg {
@@ -241,6 +285,7 @@ impl AliceMsg {
         AliceMsg { algorithm, data }
     }
 
+    /// Returns the key exchange algorithm used to compute this message
     pub fn algorithm(&self) -> OqsKexAlg {
         self.algorithm
     }
@@ -256,6 +301,7 @@ impl AsRef<[u8]> for AliceMsg {
     }
 }
 
+/// Bob's message (public key / encryption of shared key + optional additional data)
 #[derive(Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BobMsg {
@@ -268,6 +314,7 @@ impl BobMsg {
         BobMsg { algorithm, data }
     }
 
+    /// Returns the key exchange algorithm used to compute this message
     pub fn algorithm(&self) -> OqsKexAlg {
         self.algorithm
     }
@@ -283,6 +330,7 @@ impl AsRef<[u8]> for BobMsg {
     }
 }
 
+/// Shared key, the result of a completed key exchange.
 #[derive(Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SharedKey {
@@ -295,6 +343,7 @@ impl SharedKey {
         SharedKey { algorithm, data }
     }
 
+    /// Returns the key exchange algorithm used to compute this message
     pub fn algorithm(&self) -> OqsKexAlg {
         self.algorithm
     }
