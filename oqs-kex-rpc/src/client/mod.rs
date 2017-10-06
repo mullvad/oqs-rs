@@ -34,7 +34,7 @@ impl OqsKexClient {
     }
 
     pub fn kex(&mut self, algs: &[OqsKexAlg]) -> Result<Vec<SharedKey>> {
-        let rand = OqsRand::new(self.rand).chain_err(|| ErrorKind::RpcError)?;
+        let rand = OqsRand::new(self.rand).chain_err(|| ErrorKind::OqsError)?;
         let kexs = self.init_kex(&rand, algs)?;
         let alice_kexs = Self::alice_0(&kexs)?;
         let bob_msgs = self.perform_rpc(&alice_kexs)?;
