@@ -1,8 +1,8 @@
-pub mod rpc;
-
 use oqs;
 use oqs::kex::{AliceMsg, BobMsg, OqsKex, OqsKexAlg, OqsKexAlice, OqsRand, OqsRandAlg, SharedKey};
 use jsonrpc_client_http::HttpHandle;
+
+pub mod rpc;
 
 error_chain! {
     errors {
@@ -35,7 +35,7 @@ impl OqsKexClient {
 
     pub fn kex(&mut self, algs: &[OqsKexAlg]) -> Result<Vec<SharedKey>> {
         let rand = OqsRand::new(self.rand).chain_err(|| ErrorKind::OqsError)?;
-        let kexs = self.init_kex(&rand, algs)?;
+        let kexs = Self::init_kex(&rand, algs)?;
         let alice_kexs = Self::alice_0(&kexs)?;
         let bob_msgs = self.perform_rpc(&alice_kexs)?;
         ensure!(
@@ -45,7 +45,7 @@ impl OqsKexClient {
         Self::alice_1(alice_kexs, &bob_msgs)
     }
 
-    fn init_kex<'r>(&self, rand: &'r OqsRand, algs: &[OqsKexAlg]) -> Result<Vec<OqsKex<'r>>> {
+    fn init_kex<'r>(rand: &'r OqsRand, algs: &[OqsKexAlg]) -> Result<Vec<OqsKex<'r>>> {
         algs.iter()
             .map(|alg| OqsKex::new(&rand, *alg))
             .collect::<oqs::kex::Result<_>>()
