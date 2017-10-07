@@ -1,5 +1,5 @@
-extern crate hyper;
 extern crate jsonrpc_core;
+extern crate jsonrpc_http_server;
 extern crate oqs;
 extern crate oqs_kex_rpc;
 
@@ -45,7 +45,7 @@ fn full_kex_localhost() {
     }
 }
 
-fn meta_extractor(request: &hyper::Request) -> Metadata {
+fn meta_extractor(request: &jsonrpc_http_server::hyper::Request) -> Metadata {
     Metadata {
         remote_addr: request.remote_addr().unwrap(),
     }
