@@ -352,9 +352,16 @@ mod tests {
     }
 
     test_full_kex!(full_kex_default, Default);
+    test_full_kex!(full_kex_rlwe_bcns15, RlweBcns15);
     test_full_kex!(full_kex_rlwe_newhope, RlweNewhope);
-    test_full_kex!(full_kex_code_mcbits, CodeMcbits);
+    test_full_kex!(full_kex_rlwe_msrln16, RlweMsrln16);
+    // test_full_kex!(full_kex_lwe_frodo, LweFrodo);
     test_full_kex!(full_kex_sidh_cln16, SidhCln16);
+    test_full_kex!(full_kex_sidh_cln16_compressed, SidhCln16Compressed);
+    test_full_kex!(full_kex_code_mcbits, CodeMcbits);
+    test_full_kex!(full_kex_ntrl, Ntru);
+    // test_full_kex!(full_kex_sidh_iqc_ref, SidhIqcRef);
+    test_full_kex!(full_kex_mlwe_kyber, MlweKyber);
 
     fn helper_bob(alice_msg: &AliceMsg) -> (BobMsg, SharedKey) {
         let rand = OqsRand::new(OqsRandAlg::default()).unwrap();
