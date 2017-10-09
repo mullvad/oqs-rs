@@ -7,7 +7,9 @@
 // except according to those terms.
 
 use oqs;
-use oqs::kex::{AliceMsg, BobMsg, OqsKex, OqsKexAlg, OqsKexAlice, OqsRand, OqsRandAlg, SharedKey};
+use oqs::kex::{AliceMsg, BobMsg, OqsKex, OqsKexAlg, OqsKexAlice, SharedKey};
+use oqs::rand::{OqsRand, OqsRandAlg};
+
 use jsonrpc_client_http::HttpHandle;
 
 pub mod rpc;

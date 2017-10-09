@@ -25,4 +25,7 @@ extern crate serde;
 /// The key exchange primitives.
 pub mod kex;
 
+/// The PRNG primitives.
+pub mod rand;
+
 mod buf;

@@ -21,61 +21,8 @@ use core::{mem, ptr};
 use std::fmt;
 
 use oqs_sys::kex as ffi;
+use rand::OqsRand;
 use buf::Buf;
-
-
-/// Enum representation of the supported PRNG algorithms.
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub enum OqsRandAlg {
-    Default = ffi::OQS_RAND_alg_name::OQS_RAND_alg_default as u32,
-    UrandomChacha20 = ffi::OQS_RAND_alg_name::OQS_RAND_alg_urandom_chacha20 as u32,
-    UrandomAesctr = ffi::OQS_RAND_alg_name::OQS_RAND_alg_urandom_aesctr as u32,
-}
-
-impl From<OqsRandAlg> for ffi::OQS_RAND_alg_name {
-    fn from(alg: OqsRandAlg) -> Self {
-        unsafe { mem::transmute_copy::<OqsRandAlg, ffi::OQS_RAND_alg_name>(&alg) }
-    }
-}
-
-impl Default for OqsRandAlg {
-    fn default() -> Self {
-        OqsRandAlg::Default
-    }
-}
-
-pub struct OqsRand {
-    algorithm: OqsRandAlg,
-    oqs_rand: *mut ffi::OQS_RAND,
-}
-
-impl OqsRand {
-    /// Initializes and returns a new PRNG based on the given algorithm.
-    pub fn new(algorithm: OqsRandAlg) -> Result<Self> {
-        let oqs_rand = unsafe { ffi::OQS_RAND_new(ffi::OQS_RAND_alg_name::from(algorithm)) };
-        if oqs_rand != ptr::null_mut() {
-            Ok(OqsRand {
-                algorithm,
-                oqs_rand,
-            })
-        } else {
-            Err(Error)
-        }
-    }
-
-    /// Returns the algorithm backing this PRNG.
-    pub fn algorithm(&self) -> OqsRandAlg {
-        self.algorithm
-    }
-}
-
-impl Drop for OqsRand {
-    fn drop(&mut self) {
-        unsafe { ffi::OQS_RAND_free(self.oqs_rand) };
-    }
-}
 
 
 /// Enum representation of the supported key exchange algorithms.
@@ -374,7 +321,7 @@ impl fmt::Display for Error {
 
 impl ::std::error::Error for Error {
     fn description(&self) -> &str {
-        "Unspecified error in liboqs"
+        "Key exchange operation failed"
     }
 }
 
@@ -384,13 +331,13 @@ impl ::std::error::Error for Error {
 mod tests {
     use super::*;
 
-    static TEST_RAND_ALG: OqsRandAlg = OqsRandAlg::UrandomChacha20;
+    use rand::OqsRandAlg;
 
     macro_rules! test_full_kex {
         ($name:ident, $algo:ident) => (
             #[test]
             fn $name() {
-                let rand_alice = OqsRand::new(TEST_RAND_ALG).unwrap();
+                let rand_alice = OqsRand::new(OqsRandAlg::default()).unwrap();
                 let kex_alice = OqsKex::new(&rand_alice, OqsKexAlg::$algo).unwrap();
                 let kex_alice_0 = kex_alice.alice_0().unwrap();
 
@@ -410,7 +357,7 @@ mod tests {
     test_full_kex!(full_kex_sidh_cln16, SidhCln16);
 
     fn helper_bob(alice_msg: &AliceMsg) -> (BobMsg, SharedKey) {
-        let rand = OqsRand::new(TEST_RAND_ALG).unwrap();
+        let rand = OqsRand::new(OqsRandAlg::default()).unwrap();
         let (bob_msg, shared_key) = OqsKex::new(&rand, alice_msg.algorithm())
             .unwrap()
             .bob(alice_msg)
