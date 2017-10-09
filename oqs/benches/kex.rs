@@ -7,10 +7,23 @@ use test::Bencher;
 use oqs::kex::{OqsKex, OqsKexAlg};
 use oqs::rand::{OqsRand, OqsRandAlg};
 
+/// Macro generating all benchmarks for a given KEX algorithm
+macro_rules! bench_kex {
+    ($alg:ident) => (
+        #[allow(non_snake_case)]
+        mod $alg {
+            use super::*;
+            bench_alice0!($alg);
+            bench_bob!($alg);
+            bench_full_kex!($alg);
+        }
+    )
+}
+
 macro_rules! bench_alice0 {
-    ($name:ident, $algo:ident) => (
+    ($algo:ident) => (
         #[bench]
-        fn $name(b: &mut Bencher) {
+        fn alice_0(b: &mut Bencher) {
             let rand = OqsRand::new(OqsRandAlg::default()).unwrap();
             let kex = OqsKex::new(&rand, OqsKexAlg::$algo).unwrap();
             b.iter(|| {
@@ -20,14 +33,24 @@ macro_rules! bench_alice0 {
     )
 }
 
-bench_alice0!(kex_alice_0_rlwe_newhope, RlweNewhope);
-bench_alice0!(kex_alice_0_code_mcbits, CodeMcbits);
-bench_alice0!(kex_alice_0_sidh_cln16, SidhCln16);
+macro_rules! bench_bob {
+    ($algo:ident) => (
+        #[bench]
+        fn bob(b: &mut Bencher) {
+            let rand = OqsRand::new(OqsRandAlg::default()).unwrap();
+            let kex = OqsKex::new(&rand, OqsKexAlg::$algo).unwrap();
+            let kex_alice = kex.alice_0().unwrap();
+            b.iter(|| {
+                kex.bob(kex_alice.get_alice_msg()).unwrap()
+            });
+        }
+    )
+}
 
 macro_rules! bench_full_kex {
-    ($name:ident, $algo:ident) => (
+    ($algo:ident) => (
         #[bench]
-        fn $name(b: &mut Bencher) {
+        fn full_kex(b: &mut Bencher) {
             let rand = OqsRand::new(OqsRandAlg::default()).unwrap();
             b.iter(|| {
                 let kex_alice = OqsKex::new(&rand, OqsKexAlg::$algo).unwrap();
@@ -45,6 +68,9 @@ macro_rules! bench_full_kex {
     )
 }
 
-bench_full_kex!(full_kex_rlwe_newhope, RlweNewhope);
-bench_full_kex!(full_kex_code_mcbits, CodeMcbits);
-bench_full_kex!(full_kex_sidh_cln16, SidhCln16);
+mod kex_benches {
+    use super::*;
+    bench_kex!(RlweNewhope);
+    bench_kex!(CodeMcbits);
+    bench_kex!(SidhCln16);
+}
