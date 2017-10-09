@@ -26,6 +26,7 @@ script:
   - cargo test --all
   - cargo build --all --features serde
   - cargo test --all --features serde
+  - cargo bench --no-run
 
 notifications:
   email:
