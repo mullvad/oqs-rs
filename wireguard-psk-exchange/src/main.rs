@@ -7,12 +7,15 @@
 // except according to those terms.
 
 #[macro_use]
+extern crate clap;
+#[macro_use]
 extern crate error_chain;
 extern crate oqs;
 extern crate oqs_kex_rpc;
 extern crate sha2;
 extern crate base64;
 
+use clap::Arg;
 use oqs::kex::{OqsKexAlg, SharedKey};
 use oqs_kex_rpc::client::OqsKexClient;
 use sha2::{Sha512Trunc256, Digest};
@@ -26,7 +29,9 @@ error_chain! {
 quick_main!(run);
 
 fn run() -> Result<()> {
-    let server = "10.99.0.1:1984";
+    let (server, port) = parse_command_line();
+
+    let server = format_server_addr(&server, &port);
     let algs = [OqsKexAlg::RlweNewhope, OqsKexAlg::CodeMcbits, OqsKexAlg::SidhCln16];
 
     let keys = establish_quantum_safe_keys(&server, &algs)?;
@@ -34,6 +39,53 @@ fn run() -> Result<()> {
 
     println!("{}", psk);
     Ok(())
+}
+
+fn parse_command_line() -> (String, String)
+{
+    let app = clap::App::new(crate_name!())
+        .version(crate_version!())
+        .author(crate_authors!())
+        .about(crate_description!())
+        .arg(Arg::with_name("server")
+            .short("s")
+            .long("server")
+            .value_name("SERVER")
+            .help("Specifies the Wireguard server to connect to")
+            .takes_value(true)
+            .required(true))
+        .arg(Arg::with_name("port")
+            .short("p")
+            .long("port")
+            .value_name("PORT")
+            .help("Specifies the port to connect to")
+            .takes_value(true)
+            .required(true)
+            .validator(validate_port));
+
+    let app_matches = app.get_matches();
+
+    // Unwrap is safe because these are required arguments.
+    let server = app_matches.value_of("server").unwrap();
+    let port = app_matches.value_of("port").unwrap();
+
+    (String::from(server), String::from(port))
+}
+
+/// Validate that the argument value for 'port' can be parsed as a valid `int16`
+fn validate_port(candidate: String) -> ::std::result::Result<(), String> {
+    match candidate.parse::<i16>() {
+        Ok(_n) => Ok(()),
+        Err(_e) => Err(String::from("Cannot parse 'port' as an integer.")),
+    }
+}
+
+/// Format server and port into SocketAddr-digestable string.
+fn format_server_addr(server: &str, port: &str) -> String {
+    if server.contains(":") {
+        return format!("[{}]:{}", server, port);
+    }
+    format!("{}:{}", server, port)
 }
 
 fn establish_quantum_safe_keys(server: &str, algorithms: &[OqsKexAlg]) -> Result<Vec<SharedKey>> {
