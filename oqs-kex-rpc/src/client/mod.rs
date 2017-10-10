@@ -29,7 +29,8 @@ pub struct OqsKexClient {
 
 impl OqsKexClient {
     pub fn new(server_uri: &str) -> Result<Self> {
-        let rpc_client = rpc::OqsKexRpcClient::connect(server_uri).chain_err(|| ErrorKind::RpcError)?;
+        let rpc_client =
+            rpc::OqsKexRpcClient::connect(server_uri).chain_err(|| ErrorKind::RpcError)?;
 
         let client = OqsKexClient {
             rpc_client,
