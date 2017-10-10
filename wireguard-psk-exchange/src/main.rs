@@ -7,15 +7,20 @@
 // except according to those terms.
 
 #[macro_use]
+extern crate clap;
+#[macro_use]
 extern crate error_chain;
 extern crate oqs;
 extern crate oqs_kex_rpc;
 extern crate sha2;
 extern crate base64;
 
+use clap::Arg;
 use oqs::kex::{OqsKexAlg, SharedKey};
 use oqs_kex_rpc::client::OqsKexClient;
 use sha2::{Sha512Trunc256, Digest};
+use std::net::{IpAddr, SocketAddr};
+use std::str::FromStr;
 
 error_chain! {
     links {
@@ -26,18 +31,55 @@ error_chain! {
 quick_main!(run);
 
 fn run() -> Result<()> {
-    let server = "10.99.0.1:1984";
+    let server_uri = parse_command_line();
     let algs = [OqsKexAlg::RlweNewhope, OqsKexAlg::CodeMcbits, OqsKexAlg::SidhCln16];
 
-    let keys = establish_quantum_safe_keys(&server, &algs)?;
+    let keys = establish_quantum_safe_keys(&server_uri, &algs)?;
     let psk = generate_psk(&keys);
 
     println!("{}", psk);
     Ok(())
 }
 
-fn establish_quantum_safe_keys(server: &str, algorithms: &[OqsKexAlg]) -> Result<Vec<SharedKey>> {
-    let mut client = OqsKexClient::new(server)?;
+fn parse_command_line() -> String
+{
+    let app = clap::App::new(crate_name!())
+        .version(crate_version!())
+        .author(crate_authors!())
+        .about(crate_description!())
+        .arg(Arg::with_name("server")
+            .short("s")
+            .long("server")
+            .value_name("SERVER")
+            .help("Specifies the Wireguard server to connect to")
+            .takes_value(true)
+            .required(true))
+        .arg(Arg::with_name("port")
+            .short("p")
+            .long("port")
+            .value_name("PORT")
+            .help("Specifies the port to connect to")
+            .takes_value(true)
+            .required(true));
+
+    let app_matches = app.get_matches();
+
+    let server = app_matches.value_of("server").unwrap();
+    let port = value_t!(app_matches.value_of("port"), u16).unwrap_or_else(|e| e.exit());
+
+    format_server_uri(server, port)
+}
+
+fn format_server_uri(server: &str, port: u16) -> String {
+    let addr_port = match IpAddr::from_str(server) {
+        Ok(ip) => format!("{}", SocketAddr::new(ip, port)),
+        Err(_) => format!("{}:{}", server, port),
+    };
+    format!("http://{}", addr_port)
+}
+
+fn establish_quantum_safe_keys(server_uri: &str, algorithms: &[OqsKexAlg]) -> Result<Vec<SharedKey>> {
+    let mut client = OqsKexClient::new(server_uri)?;
     Ok(client.kex(algorithms)?)
 }
 

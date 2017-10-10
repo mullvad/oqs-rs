@@ -18,7 +18,7 @@ error_chain! {
     errors {
         RpcError { description("RPC client returned an error") }
         InvalidResponse { description("RPC response is syntactically valid but unexpected") }
-        OqsError { description("Oqs returned an error") }
+        OqsError { description("OQS returned an error") }
     }
 }
 
@@ -28,8 +28,8 @@ pub struct OqsKexClient {
 }
 
 impl OqsKexClient {
-    pub fn new(addr: &str) -> Result<Self> {
-        let rpc_client = rpc::OqsKexRpcClient::connect(addr).chain_err(|| ErrorKind::RpcError)?;
+    pub fn new(server_uri: &str) -> Result<Self> {
+        let rpc_client = rpc::OqsKexRpcClient::connect(server_uri).chain_err(|| ErrorKind::RpcError)?;
 
         let client = OqsKexClient {
             rpc_client,
