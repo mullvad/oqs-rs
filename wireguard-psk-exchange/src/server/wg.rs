@@ -33,20 +33,22 @@ pub fn get_peers(iface: &str) -> Result<Vec<Peer>> {
 fn parse_peers(input: &str) -> Vec<Peer> {
     let mut peers = Vec::new();
     for line in input.lines() {
-        if let Some(peer) = parse_peer(line) {
+        if let Ok(peer) = parse_peer(line) {
             peers.push(peer);
         }
     }
     peers
 }
 
+type NoopResult<T> = ::std::result::Result<T, ()>;
+
 /// Parse one line of "dump" output from wg into a `Peer`, if it's a valid line.
-fn parse_peer(input: &str) -> Option<Peer> {
+fn parse_peer(input: &str) -> NoopResult<Peer> {
     let parts: Vec<&str> = input.split('\t').collect();
     if parts.len() != 8 {
-        None
+        Err(())
     } else {
-        Some(Peer {
+        Ok(Peer {
             public_key: parts[0].to_owned(),
             tunnel_ips: parse_cidrs_to_ips(parts[3])?,
         })
@@ -54,20 +56,20 @@ fn parse_peer(input: &str) -> Option<Peer> {
 }
 
 /// Parses a comma separated list of CIDR networks into their IPs.
-fn parse_cidrs_to_ips(input: &str) -> Option<Vec<IpAddr>> {
+fn parse_cidrs_to_ips(input: &str) -> NoopResult<Vec<IpAddr>> {
     input
         .split(',')
         .map(|cidr| parse_cidr_to_ip(cidr))
-        .collect::<Option<_>>()
+        .collect::<NoopResult<_>>()
 }
 
 /// Tries to extract the IP part of a network in CIDR notation.
-fn parse_cidr_to_ip(input: &str) -> Option<IpAddr> {
+fn parse_cidr_to_ip(input: &str) -> NoopResult<IpAddr> {
     let parts: Vec<&str> = input.split('/').collect();
     if parts.len() != 2 {
-        None
+        Err(())
     } else {
-        IpAddr::from_str(parts[0]).ok()
+        IpAddr::from_str(parts[0]).map_err(|_| ())
     }
 }
 
@@ -94,7 +96,7 @@ mod tests {
 
     #[test]
     fn invalid_cidrs_to_ips() {
-        assert!(parse_cidrs_to_ips("1.2.3.4/16,not_ip").is_none());
+        assert!(parse_cidrs_to_ips("1.2.3.4/16,not_ip").is_err());
     }
 
     #[test]

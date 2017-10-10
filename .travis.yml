@@ -1,0 +1,33 @@
+language: rust
+cache:
+  cargo: true
+  directories:
+    - $HOME/liboqs
+rust:
+  - nightly
+  - stable
+  - beta
+os:
+  - linux
+
+before_install:
+  - sudo add-apt-repository ppa:elt/libsodium -y
+  - sudo apt-get -qq update
+  - sudo apt-get install -y clang libsodium-dev
+
+before_script:
+  - ./build-liboqs.sh $HOME
+  - export OQS_DIR=$HOME/liboqs
+  - export PATH=$HOME/.cargo/bin:$HOME/.local/bin:$PATH
+  - env
+
+script:
+  - cargo build --all
+  - cargo test --all
+  - cargo build --all --features serde
+  - cargo test --all --features serde
+
+notifications:
+  email:
+    on_success: never
+    on_failure: never
