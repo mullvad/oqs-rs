@@ -19,6 +19,8 @@ use clap::Arg;
 use oqs::kex::{OqsKexAlg, SharedKey};
 use oqs_kex_rpc::client::OqsKexClient;
 use sha2::{Sha512Trunc256, Digest};
+use std::net::{IpAddr, SocketAddr};
+use std::str::FromStr;
 
 error_chain! {
     links {
@@ -29,19 +31,17 @@ error_chain! {
 quick_main!(run);
 
 fn run() -> Result<()> {
-    let (server, port) = parse_command_line();
-
-    let server = format_server_addr(&server, &port);
+    let server_uri = parse_command_line();
     let algs = [OqsKexAlg::RlweNewhope, OqsKexAlg::CodeMcbits, OqsKexAlg::SidhCln16];
 
-    let keys = establish_quantum_safe_keys(&server, &algs)?;
+    let keys = establish_quantum_safe_keys(&server_uri, &algs)?;
     let psk = generate_psk(&keys);
 
     println!("{}", psk);
     Ok(())
 }
 
-fn parse_command_line() -> (String, String)
+fn parse_command_line() -> String
 {
     let app = clap::App::new(crate_name!())
         .version(crate_version!())
@@ -60,36 +60,26 @@ fn parse_command_line() -> (String, String)
             .value_name("PORT")
             .help("Specifies the port to connect to")
             .takes_value(true)
-            .required(true)
-            .validator(validate_port));
+            .required(true));
 
     let app_matches = app.get_matches();
 
-    // Unwrap is safe because these are required arguments.
     let server = app_matches.value_of("server").unwrap();
-    let port = app_matches.value_of("port").unwrap();
+    let port = value_t!(app_matches.value_of("port"), u16).unwrap_or_else(|e| e.exit());
 
-    (String::from(server), String::from(port))
+    format_server_uri(server, port)
 }
 
-/// Validate that the argument value for 'port' can be parsed as a valid `int16`
-fn validate_port(candidate: String) -> ::std::result::Result<(), String> {
-    match candidate.parse::<i16>() {
-        Ok(_n) => Ok(()),
-        Err(_e) => Err(String::from("Cannot parse 'port' as an integer.")),
-    }
+fn format_server_uri(server: &str, port: u16) -> String {
+    let addr_port = match IpAddr::from_str(server) {
+        Ok(ip) => format!("{}", SocketAddr::new(ip, port)),
+        Err(_) => format!("{}:{}", server, port),
+    };
+    format!("http://{}", addr_port)
 }
 
-/// Format server and port into SocketAddr-digestable string.
-fn format_server_addr(server: &str, port: &str) -> String {
-    if server.contains(":") {
-        return format!("[{}]:{}", server, port);
-    }
-    format!("{}:{}", server, port)
-}
-
-fn establish_quantum_safe_keys(server: &str, algorithms: &[OqsKexAlg]) -> Result<Vec<SharedKey>> {
-    let mut client = OqsKexClient::new(server)?;
+fn establish_quantum_safe_keys(server_uri: &str, algorithms: &[OqsKexAlg]) -> Result<Vec<SharedKey>> {
+    let mut client = OqsKexClient::new(server_uri)?;
     Ok(client.kex(algorithms)?)
 }
 
