@@ -14,3 +14,12 @@ oqs = { path = "../oqs" }
 base64 = "0.7"
 sha2 = "0.6"
 clap = "2.26"
+
+
+[[bin]]
+name = "wg-psk-exchange-server"
+path = "src/server/main.rs"
+
+[[bin]]
+name = "wg-psk-exchange-client"
+path = "src/main.rs"
