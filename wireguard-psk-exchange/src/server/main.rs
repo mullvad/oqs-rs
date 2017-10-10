@@ -17,8 +17,8 @@ extern crate wireguard_psk_exchange;
 use error_chain::ChainedError;
 use oqs::kex::SharedKey;
 
-use std::path::Path;
-use std::process::Command;
+use std::path::{Path, PathBuf};
+use std::process::{ExitStatus, Command};
 
 use wireguard_psk_exchange::generate_psk;
 
@@ -27,13 +27,25 @@ mod wg;
 
 static WG_IFACE: &str = "wg0";
 
-error_chain!{}
+error_chain! {
+    errors {
+        InvalidPeer { description("No information about this wireguard peer") }
+        ScriptError(path: PathBuf) {
+            description("Unable to run script")
+            display("Unable to run script {}", path.to_string_lossy())
+        }
+        ScriptExitError(status: ExitStatus) {
+            description("Script exited with an error")
+            display("Script exited with an error: {}", status)
+        }
+    }
+}
 
 fn main() {
     let settings = cli::parse_arguments();
     let on_kex_script = settings.on_kex_script;
     let on_kex = move |meta: KexMetadata, keys: Vec<SharedKey>| {
-        on_kex(meta, &keys, &on_kex_script);
+        on_kex(meta, &keys, &on_kex_script)
     };
 
     let server = oqs_kex_rpc::server::start(settings.listen_addr, meta_extractor, on_kex)
@@ -41,21 +53,18 @@ fn main() {
     server.wait();
 }
 
-fn on_kex(metadata: KexMetadata, keys: &[SharedKey], script: &Path) {
-    let public_key = match metadata.peer {
-        Some(peer) => peer.public_key,
-        None => {
-            eprintln!("Ignoring kex because of missing peer metadata");
-            return;
-        }
-    };
+fn on_kex(metadata: KexMetadata, keys: &[SharedKey], script: &Path) -> Result<()> {
+    let peer = metadata.peer.ok_or(Error::from(ErrorKind::InvalidPeer))?;
     let psk = generate_psk(keys);
 
-    let script_result = Command::new(script).arg(&public_key).arg(psk).status();
+    let script_result = Command::new(script).arg(&peer.public_key).arg(psk).status();
     match script_result {
-        Ok(status) if status.success() => println!("Negotiated new psk for {}", public_key),
-        Ok(status) => eprintln!("Script exited with error: {}", status),
-        Err(e) => eprintln!("Unable to run script {}: {}", script.to_string_lossy(), e),
+        Ok(status) if status.success() => {
+            println!("Negotiated new psk for {}", peer.public_key);
+            Ok(())
+        },
+        Ok(status) => Err(Error::from(ErrorKind::ScriptExitError(status))),
+        Err(e) => Err(e).chain_err(|| ErrorKind::ScriptError(script.to_owned())),
     }
 }
 
