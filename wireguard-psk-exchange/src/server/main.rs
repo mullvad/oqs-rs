@@ -8,6 +8,7 @@
 
 #[macro_use]
 extern crate clap;
+extern crate env_logger;
 #[macro_use]
 extern crate error_chain;
 extern crate oqs;
@@ -15,8 +16,10 @@ extern crate oqs_kex_rpc;
 extern crate wireguard_psk_exchange;
 
 use error_chain::ChainedError;
+
 use oqs::kex::SharedKey;
 
+use std::result::Result as StdResult;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
 
@@ -29,7 +32,10 @@ static WG_IFACE: &str = "wg0";
 
 error_chain! {
     errors {
-        InvalidPeer { description("No information about this wireguard peer") }
+        InvalidPeer(msg: String) {
+            description("Invalid wg peer")
+            display("Invalid wg peer: {}", msg)
+        }
         ScriptError(path: PathBuf) {
             description("Unable to run script")
             display("Unable to run script {}", path.to_string_lossy())
@@ -42,6 +48,7 @@ error_chain! {
 }
 
 fn main() {
+    env_logger::init().unwrap();
     let settings = cli::parse_arguments();
     let on_kex_script = settings.on_kex_script;
     let on_kex = move |meta: KexMetadata, keys: Vec<SharedKey>| on_kex(meta, &keys, &on_kex_script);
@@ -52,7 +59,9 @@ fn main() {
 }
 
 fn on_kex(metadata: KexMetadata, keys: &[SharedKey], script: &Path) -> Result<()> {
-    let peer = metadata.peer.ok_or(Error::from(ErrorKind::InvalidPeer))?;
+    let peer = metadata
+        .peer
+        .map_err(|msg| Error::from(ErrorKind::InvalidPeer(msg)))?;
     let psk = generate_psk(keys);
 
     let script_result = Command::new(script).arg(&peer.public_key).arg(psk).status();
@@ -71,40 +80,38 @@ fn on_kex(metadata: KexMetadata, keys: &[SharedKey], script: &Path) -> Result<()
 /// On error a `KexMetadata` without a peer will be returned, then that will make the psk script
 /// not run.
 fn meta_extractor(request: &oqs_kex_rpc::server::Request) -> KexMetadata {
-    let tunnel_ip = match request.remote_addr() {
-        Some(tunnel_addr) => tunnel_addr.ip(),
-        None => {
-            eprintln!("No remote addr for the requesting peer");
-            return KexMetadata::default();
-        }
-    };
-    let peers = match wg::get_peers(WG_IFACE) {
-        Ok(peers) => peers,
-        Err(e) => {
-            eprintln!(
-                "{}",
-                e.chain_err(|| "Unable to query wg for peers")
-                    .display_chain()
-            );
-            return KexMetadata::default();
-        }
-    };
-    let peer = match peers
-        .into_iter()
-        .find(|p| p.tunnel_ips.contains(&tunnel_ip))
-    {
-        Some(peer) => peer,
-        None => {
-            eprintln!("Could not find peer with tunnel IP {}", tunnel_ip);
-            return KexMetadata::default();
-        }
-    };
-    KexMetadata { peer: Some(peer) }
+    KexMetadata {
+        peer: request_to_peer(request),
+    }
 }
 
-#[derive(Debug, Default, Clone, Eq, PartialEq, Hash)]
+fn request_to_peer(request: &oqs_kex_rpc::server::Request) -> StdResult<wg::Peer, String> {
+    let tunnel_addr = request
+        .remote_addr()
+        .ok_or(String::from("No remote addr for the requesting peer"))?;
+    let peers = wg::get_peers(WG_IFACE)
+        .chain_err(|| "Unable to query wg for peers")
+        .map_err(|e| e.display_chain().to_string())?;
+    peers
+        .into_iter()
+        .find(|p| p.tunnel_ips.contains(&tunnel_addr.ip()))
+        .ok_or(format!(
+            "Could not find peer with tunnel IP {}",
+            tunnel_addr.ip()
+        ))
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 struct KexMetadata {
-    peer: Option<wg::Peer>,
+    peer: StdResult<wg::Peer, String>,
+}
+
+impl Default for KexMetadata {
+    fn default() -> Self {
+        KexMetadata {
+            peer: Err(String::from("meta_extractor never executed")),
+        }
+    }
 }
 
 impl oqs_kex_rpc::server::Metadata for KexMetadata {}

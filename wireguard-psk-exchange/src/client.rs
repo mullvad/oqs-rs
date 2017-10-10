@@ -8,6 +8,7 @@
 
 #[macro_use]
 extern crate clap;
+extern crate env_logger;
 #[macro_use]
 extern crate error_chain;
 extern crate oqs;
@@ -32,6 +33,7 @@ error_chain! {
 quick_main!(run);
 
 fn run() -> Result<()> {
+    env_logger::init().unwrap();
     let server_uri = parse_command_line();
     let algs = [
         OqsKexAlg::RlweNewhope,
