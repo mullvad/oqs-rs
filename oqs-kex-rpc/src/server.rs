@@ -14,8 +14,12 @@ use oqs::rand::{OqsRand, OqsRandAlg};
 use std::net::SocketAddr;
 use std::marker::PhantomData;
 
-use jsonrpc_core::{BoxFuture, Error as JsonError, MetaIoHandler, Metadata};
-use jsonrpc_http_server::{MetaExtractor, Server, ServerBuilder};
+use jsonrpc_core::{BoxFuture, Error as JsonError, MetaIoHandler};
+use jsonrpc_http_server::ServerBuilder;
+
+pub use jsonrpc_core::Metadata;
+pub use jsonrpc_http_server::{MetaExtractor, Server};
+pub use jsonrpc_http_server::hyper::server::Request;
 
 
 error_chain! {
