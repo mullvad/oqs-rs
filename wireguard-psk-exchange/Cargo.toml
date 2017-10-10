@@ -22,4 +22,4 @@ path = "src/server/main.rs"
 
 [[bin]]
 name = "wg-psk-exchange-client"
-path = "src/main.rs"
+path = "src/client.rs"
