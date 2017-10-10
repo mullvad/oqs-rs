@@ -31,6 +31,7 @@ fn full_kex_localhost() {
     let tx = Mutex::new(tx);
     let on_kex = move |meta: Metadata, keys| {
         tx.lock().unwrap().send((meta, keys)).unwrap();
+        Ok(()) as Result<(), ::std::io::Error>
     };
 
     let server = oqs_kex_rpc::server::start(local_addr, meta_extractor, on_kex).unwrap();

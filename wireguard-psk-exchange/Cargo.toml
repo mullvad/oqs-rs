@@ -8,9 +8,19 @@ keywords = ["post-quantum", "liboqs", "kex", "key-exchange", "wireguard"]
 categories = ["cryptography", "network-programming"]
 
 [dependencies]
+env_logger = "0.4"
 error-chain = "0.11"
 oqs-kex-rpc = { path = "../oqs-kex-rpc" }
 oqs = { path = "../oqs" }
 base64 = "0.7"
 sha2 = "0.6"
 clap = "2.26"
+
+
+[[bin]]
+name = "wg-psk-exchange-server"
+path = "src/server/main.rs"
+
+[[bin]]
+name = "wg-psk-exchange-client"
+path = "src/client.rs"
