@@ -11,8 +11,11 @@ use oqs;
 use oqs::kex::{AliceMsg, BobMsg, OqsKex, SharedKey};
 use oqs::rand::{OqsRand, OqsRandAlg};
 
+use error_chain::ChainedError;
+
 use std::net::SocketAddr;
 use std::marker::PhantomData;
+use std::result::Result as StdResult;
 
 use jsonrpc_core::{BoxFuture, Error as JsonError, MetaIoHandler};
 use jsonrpc_http_server::ServerBuilder;
@@ -26,17 +29,19 @@ error_chain! {
     errors {
         RpcError { description("RPC server error") }
         OqsError { description("OQS error") }
+        CallbackError { description("Error in on_kex callback") }
     }
 }
 
 
 /// Tries to start a HTTP JSON-RPC 2.0 server at `addr`. Will call `on_kex` after each finished
 /// negotiation and give it the resulting keys of the key exchange.
-pub fn start<ME, M, F>(addr: SocketAddr, meta_extractor: ME, on_kex: F) -> Result<Server>
+pub fn start<ME, M, E, F>(addr: SocketAddr, meta_extractor: ME, on_kex: F) -> Result<Server>
 where
     M: Metadata + Sync,
     ME: MetaExtractor<M>,
-    F: Fn(M, Vec<SharedKey>) + Send + Sync + 'static,
+    E: ::std::error::Error + Send + 'static,
+    F: Fn(M, Vec<SharedKey>) -> StdResult<(), E> + Send + Sync + 'static,
 {
     let server = OqsKexRpcServer::new(on_kex);
     let mut io = MetaIoHandler::default();
@@ -64,19 +69,21 @@ mod api {
 }
 use self::api::OqsKexRpcServerApi;
 
-struct OqsKexRpcServer<M, F>
+struct OqsKexRpcServer<M, E, F>
 where
     M: Metadata,
-    F: Fn(M, Vec<SharedKey>) + Send + Sync + 'static,
+    E: ::std::error::Error + Send + 'static,
+    F: Fn(M, Vec<SharedKey>) -> StdResult<(), E> + Send + Sync + 'static,
 {
     pub on_kex: F,
     _meta: PhantomData<M>,
 }
 
-impl<M, F> OqsKexRpcServer<M, F>
+impl<M, E, F> OqsKexRpcServer<M, E, F>
 where
     M: Metadata + Sync,
-    F: Fn(M, Vec<SharedKey>) + Send + Sync + 'static,
+    E: ::std::error::Error + Send + 'static,
+    F: Fn(M, Vec<SharedKey>) -> StdResult<(), E> + Send + Sync + 'static,
 {
     pub fn new(on_kex: F) -> Self {
         OqsKexRpcServer {
@@ -89,7 +96,7 @@ where
         let rand = OqsRand::new(OqsRandAlg::default()).chain_err(|| ErrorKind::OqsError)?;
         let kexs = Self::init_kex(&rand, &alice_msgs)?;
         let (bob_msgs, keys) = Self::bob(&kexs, alice_msgs)?;
-        (self.on_kex)(meta, keys);
+        (self.on_kex)(meta, keys).chain_err(|| ErrorKind::CallbackError)?;
         Ok(bob_msgs)
     }
 
@@ -116,10 +123,11 @@ where
     }
 }
 
-impl<M, F> OqsKexRpcServerApi for OqsKexRpcServer<M, F>
+impl<M, E, F> OqsKexRpcServerApi for OqsKexRpcServer<M, E, F>
 where
     M: Metadata + Sync,
-    F: Fn(M, Vec<SharedKey>) + Send + Sync + 'static,
+    E: ::std::error::Error + Send + 'static,
+    F: Fn(M, Vec<SharedKey>) -> StdResult<(), E> + Send + Sync + 'static,
 {
     type Metadata = M;
 
@@ -129,7 +137,7 @@ where
         alice_msgs: Vec<AliceMsg>,
     ) -> BoxFuture<Vec<BobMsg>, JsonError> {
         let result = self.perform_exchange(meta, &alice_msgs).map_err(|e| {
-            error!("Error during key exchange: {}", e);
+            error!("Error during key exchange: {}", e.display_chain());
             JsonError::internal_error()
         });
         Box::new(futures::future::result(result))
