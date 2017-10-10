@@ -18,7 +18,7 @@ use error_chain::ChainedError;
 use oqs::kex::SharedKey;
 
 use std::path::{Path, PathBuf};
-use std::process::{ExitStatus, Command};
+use std::process::{Command, ExitStatus};
 
 use wireguard_psk_exchange::generate_psk;
 
@@ -44,9 +44,7 @@ error_chain! {
 fn main() {
     let settings = cli::parse_arguments();
     let on_kex_script = settings.on_kex_script;
-    let on_kex = move |meta: KexMetadata, keys: Vec<SharedKey>| {
-        on_kex(meta, &keys, &on_kex_script)
-    };
+    let on_kex = move |meta: KexMetadata, keys: Vec<SharedKey>| on_kex(meta, &keys, &on_kex_script);
 
     let server = oqs_kex_rpc::server::start(settings.listen_addr, meta_extractor, on_kex)
         .expect("Unable to start server");
@@ -62,7 +60,7 @@ fn on_kex(metadata: KexMetadata, keys: &[SharedKey], script: &Path) -> Result<()
         Ok(status) if status.success() => {
             println!("Negotiated new psk for {}", peer.public_key);
             Ok(())
-        },
+        }
         Ok(status) => Err(Error::from(ErrorKind::ScriptExitError(status))),
         Err(e) => Err(e).chain_err(|| ErrorKind::ScriptError(script.to_owned())),
     }
