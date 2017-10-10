@@ -20,9 +20,9 @@ jsonrpc_client!(pub struct OqsKexRpcClient {
 });
 
 impl OqsKexRpcClient<HttpHandle> {
-    pub fn connect(addr: &str) -> Result<Self> {
+    pub fn connect(server_uri: &str) -> Result<Self> {
         let transport = HttpTransport::new().chain_err(|| ErrorKind::RpcInitError)?;
-        let transport_handle = transport.handle(addr).chain_err(|| ErrorKind::RpcInitError)?;
+        let transport_handle = transport.handle(server_uri).chain_err(|| ErrorKind::RpcInitError)?;
         Ok(OqsKexRpcClient::new(transport_handle))
     }
 }
