@@ -12,15 +12,16 @@ extern crate clap;
 extern crate error_chain;
 extern crate oqs;
 extern crate oqs_kex_rpc;
-extern crate sha2;
-extern crate base64;
+extern crate wireguard_psk_exchange;
 
 use clap::Arg;
 use oqs::kex::{OqsKexAlg, SharedKey};
 use oqs_kex_rpc::client::OqsKexClient;
-use sha2::{Sha512Trunc256, Digest};
+
 use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
+
+use wireguard_psk_exchange::generate_psk;
 
 error_chain! {
     links {
@@ -83,12 +84,3 @@ fn establish_quantum_safe_keys(server_uri: &str, algorithms: &[OqsKexAlg]) -> Re
     Ok(client.kex(algorithms)?)
 }
 
-fn generate_psk(keys: &[SharedKey]) -> String {
-    let mut hasher = Sha512Trunc256::default();
-    for key in keys {
-        hasher.input(key.data());
-    }
-
-    let digest = hasher.result().to_vec();
-    base64::encode(&digest)
-}
