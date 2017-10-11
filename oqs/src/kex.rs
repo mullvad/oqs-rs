@@ -17,7 +17,7 @@
 //! [`OqsKex`]: struct.OqsKex.html
 
 use libc;
-use core::{mem, ptr};
+use core::ptr;
 use std::fmt;
 
 use oqs_sys::kex as ffi;
@@ -26,22 +26,20 @@ use buf::Buf;
 
 
 /// Enum representation of the supported key exchange algorithms.
-#[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum OqsKexAlg {
-    Default = ffi::OQS_KEX_alg_name::OQS_KEX_alg_default as u32,
-    RlweBcns15 = ffi::OQS_KEX_alg_name::OQS_KEX_alg_rlwe_bcns15 as u32,
-    RlweNewhope = ffi::OQS_KEX_alg_name::OQS_KEX_alg_rlwe_newhope as u32,
-    RlweMsrln16 = ffi::OQS_KEX_alg_name::OQS_KEX_alg_rlwe_msrln16 as u32,
-    /// WARNING: LweFroo is using a hardcoded seed in current implementation.
-    LweFrodo = ffi::OQS_KEX_alg_name::OQS_KEX_alg_lwe_frodo as u32,
-    SidhCln16 = ffi::OQS_KEX_alg_name::OQS_KEX_alg_sidh_cln16 as u32,
-    SidhCln16Compressed = ffi::OQS_KEX_alg_name::OQS_KEX_alg_sidh_cln16_compressed as u32,
-    CodeMcbits = ffi::OQS_KEX_alg_name::OQS_KEX_alg_code_mcbits as u32,
-    Ntru = ffi::OQS_KEX_alg_name::OQS_KEX_alg_ntru as u32,
-    SidhIqcRef = ffi::OQS_KEX_alg_name::OQS_KEX_alg_sidh_iqc_ref as u32,
-    MlweKyber = ffi::OQS_KEX_alg_name::OQS_KEX_alg_mlwe_kyber as u32,
+    Default,
+    RlweBcns15,
+    RlweNewhope,
+    RlweMsrln16,
+    LweFrodo([u8; 16]),
+    SidhCln16,
+    SidhCln16Compressed,
+    CodeMcbits,
+    Ntru,
+    SidhIqcRef,
+    MlweKyber,
 }
 
 impl Default for OqsKexAlg {
@@ -52,7 +50,20 @@ impl Default for OqsKexAlg {
 
 impl From<OqsKexAlg> for ffi::OQS_KEX_alg_name {
     fn from(alg: OqsKexAlg) -> Self {
-        unsafe { mem::transmute_copy::<OqsKexAlg, ffi::OQS_KEX_alg_name>(&alg) }
+        use self::OqsKexAlg::*;
+        match alg {
+            Default => ffi::OQS_KEX_alg_name::OQS_KEX_alg_default,
+            RlweBcns15 => ffi::OQS_KEX_alg_name::OQS_KEX_alg_rlwe_bcns15,
+            RlweNewhope => ffi::OQS_KEX_alg_name::OQS_KEX_alg_rlwe_newhope,
+            RlweMsrln16 => ffi::OQS_KEX_alg_name::OQS_KEX_alg_rlwe_msrln16,
+            LweFrodo(_) => ffi::OQS_KEX_alg_name::OQS_KEX_alg_lwe_frodo,
+            SidhCln16 => ffi::OQS_KEX_alg_name::OQS_KEX_alg_sidh_cln16,
+            SidhCln16Compressed => ffi::OQS_KEX_alg_name::OQS_KEX_alg_sidh_cln16_compressed,
+            CodeMcbits => ffi::OQS_KEX_alg_name::OQS_KEX_alg_code_mcbits,
+            Ntru => ffi::OQS_KEX_alg_name::OQS_KEX_alg_ntru,
+            SidhIqcRef => ffi::OQS_KEX_alg_name::OQS_KEX_alg_sidh_iqc_ref,
+            MlweKyber => ffi::OQS_KEX_alg_name::OQS_KEX_alg_mlwe_kyber,
+        }
     }
 }
 
@@ -69,12 +80,12 @@ pub struct OqsKex<'r> {
 impl<'r> OqsKex<'r> {
     /// Initializes and returns a new OQS key exchange instance.
     pub fn new(rand: &'r OqsRand, algorithm: OqsKexAlg) -> Result<Self> {
-        let seed = match algorithm {
-            OqsKexAlg::LweFrodo => vec![0; 16],
-            _ => Vec::new(),
+        let seed: &[u8] = match algorithm {
+            OqsKexAlg::LweFrodo(ref seed) => &seed[..],
+            _ => &[],
         };
         let named_parameters = match algorithm {
-            OqsKexAlg::LweFrodo => LWE_FRODO_PARAM.as_ptr(),
+            OqsKexAlg::LweFrodo(_) => LWE_FRODO_PARAM.as_ptr(),
             OqsKexAlg::SidhCln16Compressed => SIDH_CLN16_COMPRESSED_PARAM.as_ptr(),
             _ => ptr::null(),
         };
@@ -354,11 +365,11 @@ mod tests {
     use rand::OqsRandAlg;
 
     macro_rules! test_full_kex {
-        ($name:ident, $algo:ident) => (
+        ($name:ident, $algo:expr) => (
             #[test]
             fn $name() {
                 let rand_alice = OqsRand::new(OqsRandAlg::default()).unwrap();
-                let kex_alice = OqsKex::new(&rand_alice, OqsKexAlg::$algo)
+                let kex_alice = OqsKex::new(&rand_alice, $algo)
                     .expect("Unable to create KEX");
                 let kex_alice_0 = kex_alice.alice_0().expect("Failed in alice_0");
 
@@ -372,17 +383,17 @@ mod tests {
         )
     }
 
-    test_full_kex!(full_kex_default, Default);
-    test_full_kex!(full_kex_rlwe_bcns15, RlweBcns15);
-    test_full_kex!(full_kex_rlwe_newhope, RlweNewhope);
-    test_full_kex!(full_kex_rlwe_msrln16, RlweMsrln16);
-    test_full_kex!(full_kex_lwe_frodo, LweFrodo);
-    test_full_kex!(full_kex_sidh_cln16, SidhCln16);
-    test_full_kex!(full_kex_sidh_cln16_compressed, SidhCln16Compressed);
-    test_full_kex!(full_kex_code_mcbits, CodeMcbits);
-    test_full_kex!(full_kex_ntrl, Ntru);
-    // test_full_kex!(full_kex_sidh_iqc_ref, SidhIqcRef);
-    test_full_kex!(full_kex_mlwe_kyber, MlweKyber);
+    test_full_kex!(full_kex_default, OqsKexAlg::Default);
+    test_full_kex!(full_kex_rlwe_bcns15, OqsKexAlg::RlweBcns15);
+    test_full_kex!(full_kex_rlwe_newhope, OqsKexAlg::RlweNewhope);
+    test_full_kex!(full_kex_rlwe_msrln16, OqsKexAlg::RlweMsrln16);
+    test_full_kex!(full_kex_lwe_frodo, OqsKexAlg::LweFrodo([0; 16]));
+    test_full_kex!(full_kex_sidh_cln16, OqsKexAlg::SidhCln16);
+    test_full_kex!(full_kex_sidh_cln16_compressed, OqsKexAlg::SidhCln16Compressed);
+    test_full_kex!(full_kex_code_mcbits, OqsKexAlg::CodeMcbits);
+    test_full_kex!(full_kex_ntrl, OqsKexAlg::Ntru);
+    // test_full_kex!(full_kex_sidh_iqc_ref, OqsKexAlg::SidhIqcRef);
+    test_full_kex!(full_kex_mlwe_kyber, OqsKexAlg::MlweKyber);
 
     fn helper_bob(alice_msg: &AliceMsg) -> (BobMsg, SharedKey) {
         let rand = OqsRand::new(OqsRandAlg::default()).unwrap();
