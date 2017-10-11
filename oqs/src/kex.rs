@@ -55,6 +55,9 @@ impl From<OqsKexAlg> for ffi::OQS_KEX_alg_name {
     }
 }
 
+static LWE_FRODO_PARAM: &str = "recommended\0";
+static SIDH_CLN16_COMPRESSED_PARAM: &str = "compressedp751\0";
+
 
 pub struct OqsKex<'r> {
     _rand: &'r OqsRand,
@@ -65,9 +68,21 @@ pub struct OqsKex<'r> {
 impl<'r> OqsKex<'r> {
     /// Initializes and returns a new OQS key exchange instance.
     pub fn new(rand: &'r OqsRand, algorithm: OqsKexAlg) -> Result<Self> {
-        let ffi_kex_alg = ffi::OQS_KEX_alg_name::from(algorithm);
-        let oqs_kex =
-            unsafe { ffi::OQS_KEX_new(rand.oqs_rand, ffi_kex_alg, ptr::null(), 0, ptr::null()) };
+        let named_parameters = match algorithm {
+            OqsKexAlg::LweFrodo => LWE_FRODO_PARAM.as_ptr(),
+            OqsKexAlg::SidhCln16Compressed => SIDH_CLN16_COMPRESSED_PARAM.as_ptr(),
+            _ => ptr::null(),
+        };
+
+        let oqs_kex = unsafe {
+            ffi::OQS_KEX_new(
+                rand.oqs_rand,
+                ffi::OQS_KEX_alg_name::from(algorithm),
+                ptr::null(),
+                0,
+                named_parameters as *const i8,
+            )
+        };
         if oqs_kex != ptr::null_mut() {
             Ok(OqsKex {
                 _rand: rand,
