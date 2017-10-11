@@ -56,6 +56,26 @@ impl OqsRand {
     pub fn algorithm(&self) -> OqsRandAlg {
         self.algorithm
     }
+
+    /// Returns an 8-bit random unsigned integer
+    pub fn rand_8(&self) -> u8 {
+        unsafe { ffi::OQS_RAND_8(self.oqs_rand) }
+    }
+
+    /// Returns an 32-bit random unsigned integer
+    pub fn rand_32(&self) -> u32 {
+        unsafe { ffi::OQS_RAND_32(self.oqs_rand) }
+    }
+
+    /// Returns an 64-bit random unsigned integer
+    pub fn rand_64(&self) -> u64 {
+        unsafe { ffi::OQS_RAND_64(self.oqs_rand) }
+    }
+
+    /// Fills the given buffer with random data
+    pub fn rand_n(&self, buffer: &mut [u8]) {
+        unsafe { ffi::OQS_RAND_n(self.oqs_rand, buffer.as_mut_ptr(), buffer.len()) }
+    }
 }
 
 impl Drop for OqsRand {
