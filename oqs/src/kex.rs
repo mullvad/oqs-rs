@@ -34,6 +34,7 @@ pub enum OqsKexAlg {
     RlweBcns15 = ffi::OQS_KEX_alg_name::OQS_KEX_alg_rlwe_bcns15 as u32,
     RlweNewhope = ffi::OQS_KEX_alg_name::OQS_KEX_alg_rlwe_newhope as u32,
     RlweMsrln16 = ffi::OQS_KEX_alg_name::OQS_KEX_alg_rlwe_msrln16 as u32,
+    /// WARNING: LweFroo is using a hardcoded seed in current implementation.
     LweFrodo = ffi::OQS_KEX_alg_name::OQS_KEX_alg_lwe_frodo as u32,
     SidhCln16 = ffi::OQS_KEX_alg_name::OQS_KEX_alg_sidh_cln16 as u32,
     SidhCln16Compressed = ffi::OQS_KEX_alg_name::OQS_KEX_alg_sidh_cln16_compressed as u32,
@@ -68,6 +69,10 @@ pub struct OqsKex<'r> {
 impl<'r> OqsKex<'r> {
     /// Initializes and returns a new OQS key exchange instance.
     pub fn new(rand: &'r OqsRand, algorithm: OqsKexAlg) -> Result<Self> {
+        let seed = match algorithm {
+            OqsKexAlg::LweFrodo => vec![0; 16],
+            _ => Vec::new(),
+        };
         let named_parameters = match algorithm {
             OqsKexAlg::LweFrodo => LWE_FRODO_PARAM.as_ptr(),
             OqsKexAlg::SidhCln16Compressed => SIDH_CLN16_COMPRESSED_PARAM.as_ptr(),
@@ -78,8 +83,8 @@ impl<'r> OqsKex<'r> {
             ffi::OQS_KEX_new(
                 rand.oqs_rand,
                 ffi::OQS_KEX_alg_name::from(algorithm),
-                ptr::null(),
-                0,
+                seed.as_ptr(),
+                seed.len(),
                 named_parameters as *const i8,
             )
         };
@@ -353,12 +358,13 @@ mod tests {
             #[test]
             fn $name() {
                 let rand_alice = OqsRand::new(OqsRandAlg::default()).unwrap();
-                let kex_alice = OqsKex::new(&rand_alice, OqsKexAlg::$algo).unwrap();
-                let kex_alice_0 = kex_alice.alice_0().unwrap();
+                let kex_alice = OqsKex::new(&rand_alice, OqsKexAlg::$algo)
+                    .expect("Unable to create KEX");
+                let kex_alice_0 = kex_alice.alice_0().expect("Failed in alice_0");
 
                 let (bob_msg, key1) = helper_bob(kex_alice_0.get_alice_msg());
 
-                let key2 = kex_alice_0.alice_1(&bob_msg).unwrap();
+                let key2 = kex_alice_0.alice_1(&bob_msg).expect("Failed in alice_1");
 
                 assert!(!key1.data().is_empty());
                 assert_eq!(key1, key2);
@@ -370,7 +376,7 @@ mod tests {
     test_full_kex!(full_kex_rlwe_bcns15, RlweBcns15);
     test_full_kex!(full_kex_rlwe_newhope, RlweNewhope);
     test_full_kex!(full_kex_rlwe_msrln16, RlweMsrln16);
-    // test_full_kex!(full_kex_lwe_frodo, LweFrodo);
+    test_full_kex!(full_kex_lwe_frodo, LweFrodo);
     test_full_kex!(full_kex_sidh_cln16, SidhCln16);
     test_full_kex!(full_kex_sidh_cln16_compressed, SidhCln16Compressed);
     test_full_kex!(full_kex_code_mcbits, CodeMcbits);
