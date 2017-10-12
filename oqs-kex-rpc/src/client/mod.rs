@@ -12,22 +12,27 @@ use oqs::rand::{OqsRand, OqsRandAlg};
 
 use jsonrpc_client_http::HttpHandle;
 
-pub mod rpc;
+mod rpc;
 
 error_chain! {
     errors {
+        /// There was an error in the network communication or on the key exchange server.
         RpcError { description("RPC client returned an error") }
+        /// The server responded, but the returned messages don't match our request.
         InvalidResponse { description("RPC response is syntactically valid but unexpected") }
+        /// There was an error in the cryptographic operations in `oqs`.
         OqsError { description("OQS returned an error") }
     }
 }
 
+/// The key exchange client.
 pub struct OqsKexClient {
     rpc_client: rpc::OqsKexRpcClient<HttpHandle>,
     rand: OqsRandAlg,
 }
 
 impl OqsKexClient {
+    /// Connects to the given address and returns a client instance.
     pub fn new(server_uri: &str) -> Result<Self> {
         let rpc_client =
             rpc::OqsKexRpcClient::connect(server_uri).chain_err(|| ErrorKind::RpcError)?;
@@ -40,10 +45,17 @@ impl OqsKexClient {
         Ok(client)
     }
 
+    /// Configure which PRNG algorithm this client should use to source its entropy.
     pub fn set_rand(&mut self, rand: OqsRandAlg) {
         self.rand = rand;
     }
 
+    /// Performs a full key exchange with all the algorithms in `algs` at the same time.
+    ///
+    /// This will compute Alice's message for all the given algorithms and send them in one RPC
+    /// message to the server. The server will then compute the shared keys and Bob's messages for
+    /// all algorithms. Then the server return Bob's messages and this client finally computes
+    /// the shared keys and returns them.
     pub fn kex(&mut self, algs: &[OqsKexAlg]) -> Result<Vec<SharedKey>> {
         let rand = OqsRand::new(self.rand).chain_err(|| ErrorKind::OqsError)?;
         let kexs = Self::init_kex(&rand, algs)?;

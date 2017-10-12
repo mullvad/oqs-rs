@@ -6,6 +6,9 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+//!
+//! Use the [`start`](fn.start.html) function to spawn a key exchange server.
+
 use futures;
 use oqs;
 use oqs::kex::{AliceMsg, BobMsg, OqsKex, SharedKey};
@@ -27,15 +30,25 @@ pub use jsonrpc_http_server::hyper::server::Request;
 
 error_chain! {
     errors {
+        /// There was an error while initializing the HTTP server.
         RpcError { description("RPC server error") }
+        /// There was an error in the cryptographic operations in `oqs`.
         OqsError { description("OQS error") }
+        /// There was an error in the user supplied callback.
         CallbackError { description("Error in on_kex callback") }
     }
 }
 
 
-/// Tries to start a HTTP JSON-RPC 2.0 server at `addr`. Will call `on_kex` after each finished
-/// negotiation and give it the resulting keys of the key exchange.
+/// Tries to start a HTTP JSON-RPC 2.0 server bound to `addr`.
+///
+/// Will call `on_kex` after each finished negotiation and give it the resulting keys of the key
+/// exchange.
+///
+/// `meta_extractor` should be a type that, given a HTTP request, should compute some metadata that
+/// one want to associate with the final shared key. The `meta_extractor` will be called before
+/// any key exchange starts, and the resulting metadata will be fed to `on_kex` together with the
+/// resulting shared keys.
 pub fn start<ME, M, E, F>(addr: SocketAddr, meta_extractor: ME, on_kex: F) -> Result<Server>
 where
     M: Metadata + Sync,
