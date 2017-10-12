@@ -65,6 +65,12 @@ impl OqsKexClient {
             alice_kexs.len() == bob_msgs.len(),
             ErrorKind::InvalidResponse
         );
+        for (alice_kex, bob_msg) in alice_kexs.iter().zip(bob_msgs.iter()) {
+            ensure!(
+                alice_kex.algorithm() == bob_msg.algorithm(),
+                ErrorKind::InvalidResponse
+            )
+        }
         Self::alice_1(alice_kexs, &bob_msgs)
     }
 
