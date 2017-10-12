@@ -28,12 +28,18 @@ pub enum Buf {
 }
 
 impl Buf {
+    /// Creates and returns a new `Buf` instance backed by the data at the given raw pointer.
+    /// Not to be used except for wrapping data given out by `liboqs` from C.
+    ///
+    /// `Buf` instances created from this method will be freed with `libc::free`, to match how they
+    /// were allocated in `liboqs`.
     pub fn from_c(msg: *mut u8, len: usize) -> Self {
         Buf::CAlloc(Some(
             unsafe { Vec::from_raw_parts(msg, len, len) }.into_boxed_slice(),
         ))
     }
 
+    /// Returns the underlying data as a slice.
     pub fn data(&self) -> &[u8] {
         match *self {
             Buf::CAlloc(ref buf_option) => buf_option.as_ref().unwrap(),
@@ -49,6 +55,9 @@ impl AsRef<[u8]> for Buf {
 }
 
 impl Clone for Buf {
+    /// Returns a new `Buf` backed by a clone of the same data as the `Buf` being cloned.
+    /// Any clone is not considered as allocated from C, and will be freed in the normal Rust way
+    /// instead of by `libc::free`.
     fn clone(&self) -> Self {
         Buf::RustAlloc(self.data().to_vec().into_boxed_slice())
     }
