@@ -80,9 +80,9 @@ pub struct OqsKex<'r> {
 impl<'r> OqsKex<'r> {
     /// Initializes and returns a new OQS key exchange instance.
     pub fn new(rand: &'r OqsRand, algorithm: OqsKexAlg) -> Result<Self> {
-        let seed: &[u8] = match algorithm {
-            OqsKexAlg::LweFrodo { ref seed } => &seed[..],
-            _ => &[],
+        let (seed_ptr, seed_len) = match algorithm {
+            OqsKexAlg::LweFrodo { ref seed } => (seed.as_ptr(), seed.len()),
+            _ => (ptr::null(), 0),
         };
         let named_parameters = match algorithm {
             OqsKexAlg::LweFrodo { .. } => LWE_FRODO_PARAM.as_ptr(),
@@ -94,8 +94,8 @@ impl<'r> OqsKex<'r> {
             ffi::OQS_KEX_new(
                 rand.oqs_rand,
                 ffi::OQS_KEX_alg_name::from(algorithm),
-                seed.as_ptr(),
-                seed.len(),
+                seed_ptr,
+                seed_len,
                 named_parameters as *const i8,
             )
         };
