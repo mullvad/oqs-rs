@@ -33,7 +33,7 @@ pub enum OqsKexAlg {
     RlweBcns15,
     RlweNewhope,
     RlweMsrln16,
-    LweFrodo([u8; 16]),
+    LweFrodo { seed: [u8; 16] },
     SidhCln16,
     SidhCln16Compressed,
     CodeMcbits,
@@ -56,7 +56,7 @@ impl From<OqsKexAlg> for ffi::OQS_KEX_alg_name {
             RlweBcns15 => ffi::OQS_KEX_alg_name::OQS_KEX_alg_rlwe_bcns15,
             RlweNewhope => ffi::OQS_KEX_alg_name::OQS_KEX_alg_rlwe_newhope,
             RlweMsrln16 => ffi::OQS_KEX_alg_name::OQS_KEX_alg_rlwe_msrln16,
-            LweFrodo(_) => ffi::OQS_KEX_alg_name::OQS_KEX_alg_lwe_frodo,
+            LweFrodo { .. } => ffi::OQS_KEX_alg_name::OQS_KEX_alg_lwe_frodo,
             SidhCln16 => ffi::OQS_KEX_alg_name::OQS_KEX_alg_sidh_cln16,
             SidhCln16Compressed => ffi::OQS_KEX_alg_name::OQS_KEX_alg_sidh_cln16_compressed,
             CodeMcbits => ffi::OQS_KEX_alg_name::OQS_KEX_alg_code_mcbits,
@@ -81,11 +81,11 @@ impl<'r> OqsKex<'r> {
     /// Initializes and returns a new OQS key exchange instance.
     pub fn new(rand: &'r OqsRand, algorithm: OqsKexAlg) -> Result<Self> {
         let seed: &[u8] = match algorithm {
-            OqsKexAlg::LweFrodo(ref seed) => &seed[..],
+            OqsKexAlg::LweFrodo { ref seed } => &seed[..],
             _ => &[],
         };
         let named_parameters = match algorithm {
-            OqsKexAlg::LweFrodo(_) => LWE_FRODO_PARAM.as_ptr(),
+            OqsKexAlg::LweFrodo { .. } => LWE_FRODO_PARAM.as_ptr(),
             OqsKexAlg::SidhCln16Compressed => SIDH_CLN16_COMPRESSED_PARAM.as_ptr(),
             _ => ptr::null(),
         };
@@ -387,9 +387,12 @@ mod tests {
     test_full_kex!(full_kex_rlwe_bcns15, OqsKexAlg::RlweBcns15);
     test_full_kex!(full_kex_rlwe_newhope, OqsKexAlg::RlweNewhope);
     test_full_kex!(full_kex_rlwe_msrln16, OqsKexAlg::RlweMsrln16);
-    test_full_kex!(full_kex_lwe_frodo, OqsKexAlg::LweFrodo([0; 16]));
+    test_full_kex!(full_kex_lwe_frodo, OqsKexAlg::LweFrodo { seed: [0; 16] });
     test_full_kex!(full_kex_sidh_cln16, OqsKexAlg::SidhCln16);
-    test_full_kex!(full_kex_sidh_cln16_compressed, OqsKexAlg::SidhCln16Compressed);
+    test_full_kex!(
+        full_kex_sidh_cln16_compressed,
+        OqsKexAlg::SidhCln16Compressed
+    );
     test_full_kex!(full_kex_code_mcbits, OqsKexAlg::CodeMcbits);
     test_full_kex!(full_kex_ntrl, OqsKexAlg::Ntru);
     // test_full_kex!(full_kex_sidh_iqc_ref, OqsKexAlg::SidhIqcRef);
