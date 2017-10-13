@@ -11,7 +11,6 @@ categories = ["cryptography", "network-programming"]
 env_logger = "0.4"
 error-chain = "0.11"
 oqs-kex-rpc = { path = "../oqs-kex-rpc" }
-oqs = { path = "../oqs" }
 base64 = "0.7"
 sha2 = "0.6"
 clap = "2.26"

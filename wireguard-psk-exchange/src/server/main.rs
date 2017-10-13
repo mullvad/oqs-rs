@@ -11,13 +11,12 @@ extern crate clap;
 extern crate env_logger;
 #[macro_use]
 extern crate error_chain;
-extern crate oqs;
 extern crate oqs_kex_rpc;
 extern crate wireguard_psk_exchange;
 
 use error_chain::ChainedError;
 
-use oqs::kex::SharedKey;
+use oqs_kex_rpc::SharedKey;
 
 use std::result::Result as StdResult;
 use std::path::{Path, PathBuf};

@@ -1,8 +1,8 @@
 extern crate base64;
-extern crate oqs;
+extern crate oqs_kex_rpc;
 extern crate sha2;
 
-use oqs::kex::SharedKey;
+use oqs_kex_rpc::SharedKey;
 use sha2::{Digest, Sha512Trunc256};
 
 pub fn generate_psk(keys: &[SharedKey]) -> String {
