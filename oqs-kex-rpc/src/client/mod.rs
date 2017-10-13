@@ -58,7 +58,7 @@ impl OqsKexClient {
     /// the shared keys and returns them.
     ///
     /// The returned vector has the same length as `algs` and the [`SharedKey`] at position `n`
-    /// corresponds to the [`OqsKexAlg`] at position `n` is `algs`.
+    /// corresponds to the [`OqsKexAlg`] at position `n` in `algs`.
     ///
     /// [`SharedKey`]: struct.SharedKey.html
     /// [`OqsKexAlg`]: struct.OqsKexAlg.html
