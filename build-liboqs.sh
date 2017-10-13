@@ -20,6 +20,7 @@ cd liboqs
 
 autoreconf -i
 
+# Building with -fPIC is needed for linking with RUST
 ./configure AM_CPPFLAGS="-fPIC" \
     --enable-kex-code-mcbits \
     --enable-aes-ni \

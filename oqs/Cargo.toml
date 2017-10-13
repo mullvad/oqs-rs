@@ -3,8 +3,9 @@ name = "oqs"
 version = "0.1.0"
 authors = ["Mullvad VPN <admin@mullvad.net>", "Linus Färnstrand <faern@faern.net>", "Odd Stranne <odd@mullvad.net>"]
 license = "MIT/Apache-2.0"
+readme = "README.md"
 description = "Bindings for Open Quantum Safe, a library for quantum-resistant cryptographic algorithms."
-keywords = ["post-quantum", "liboqs", "kex", "quantum-resistant"]
+keywords = ["post-quantum", "rng", "kex", "quantum-resistant", "key-exchange"]
 categories = ["algorithms", "api-bindings", "cryptography"]
 
 [dependencies]

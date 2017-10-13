@@ -6,24 +6,32 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use core::{mem, ptr};
+use core::ptr;
 use std::fmt;
 
 use oqs_sys::rand as ffi;
 
-/// Enum representation of the supported PRNG algorithms.
-#[repr(u32)]
+/// Enum representation of the supported PRNG algorithms. Used to select backing algorithm when
+/// creating [`OqsRand`](struct.OqsRand.html) instances.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum OqsRandAlg {
-    Default = ffi::OQS_RAND_alg_name::OQS_RAND_alg_default as u32,
-    UrandomChacha20 = ffi::OQS_RAND_alg_name::OQS_RAND_alg_urandom_chacha20 as u32,
-    UrandomAesctr = ffi::OQS_RAND_alg_name::OQS_RAND_alg_urandom_aesctr as u32,
+    /// The default PRNG. Which algorithm that is the default is defined by `liboqs`.
+    Default,
+    /// ChaCha20 based PRNG.
+    UrandomChacha20,
+    /// AES-CTR based PRNG.
+    UrandomAesctr,
 }
 
 impl From<OqsRandAlg> for ffi::OQS_RAND_alg_name {
     fn from(alg: OqsRandAlg) -> Self {
-        unsafe { mem::transmute_copy::<OqsRandAlg, ffi::OQS_RAND_alg_name>(&alg) }
+        use self::OqsRandAlg::*;
+        match alg {
+            Default => ffi::OQS_RAND_alg_name::OQS_RAND_alg_default,
+            UrandomChacha20 => ffi::OQS_RAND_alg_name::OQS_RAND_alg_urandom_chacha20,
+            UrandomAesctr => ffi::OQS_RAND_alg_name::OQS_RAND_alg_urandom_aesctr,
+        }
     }
 }
 
@@ -33,6 +41,7 @@ impl Default for OqsRandAlg {
     }
 }
 
+/// The PRNG structure.
 pub struct OqsRand {
     algorithm: OqsRandAlg,
     pub(crate) oqs_rand: *mut ffi::OQS_RAND,
@@ -84,9 +93,10 @@ impl Drop for OqsRand {
     }
 }
 
-
+/// The local result alias.
 pub type Result<T> = ::std::result::Result<T, Error>;
 
+/// Error representing a failure to initialize an [`OqsRand`](struct.OqsRand.html).
 #[derive(Debug, Copy, Clone, Hash)]
 pub struct Error;
 

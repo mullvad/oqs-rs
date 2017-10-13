@@ -25,14 +25,22 @@ use rand::OqsRand;
 use buf::Buf;
 
 
-/// Enum representation of the supported key exchange algorithms.
+/// Enum representation of the supported key exchange algorithms. Used to select backing algorithm
+/// when creating [`OqsKex`](struct.OqsKex.html) instances.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[allow(missing_docs)]
 pub enum OqsKexAlg {
+    /// The default KEX algorithm. This just maps to the `OQS_KEX_alg_default` enum value in
+    /// `liboqs`, so which algorithm is used as the default depends on which one it is set to
+    /// in `liboqs`.
     Default,
     RlweBcns15,
     RlweNewhope,
     RlweMsrln16,
+    /// The `LweFrodo` algorithm requires a 16 byte seed to perform the key exchange. This seed
+    /// must be the same on both Alice's and Bob's side for them to come up with the same shared
+    /// key.
     LweFrodo { seed: [u8; 16] },
     SidhCln16,
     SidhCln16Compressed,
@@ -71,6 +79,25 @@ static LWE_FRODO_PARAM: &str = "recommended\0";
 static SIDH_CLN16_COMPRESSED_PARAM: &str = "compressedp751\0";
 
 
+/// The main key exchange struct. Used by both Alice and Bob to generate their respective public
+/// messages and the final [shared secret key].
+///
+/// # Usage
+///
+/// A full key exchange involves the following steps:
+///
+/// 1. Alice calls [`alice_0`]. This will create her [public message].
+/// 2. Alice sends her public message to Bob.
+/// 3. Bob calls [`bob`] with Alice's public message. This will create his public message, and
+///    the final shared key.
+/// 4. Bob sends his public message to Alice.
+/// 5. Alice calls [`alice_1`] with Bob's public message. This will create the same shared key as
+///    Bob got from [`bob`].
+///
+/// [`alice_0`]: #method.alice_0
+/// [`bob`]: #method.bob
+/// [`alice_1`]: struct.OqsKexAlice.html#method.alice_1
+/// [public message]: struct.OqsKexAlice.html#method.get_alice_msg
 pub struct OqsKex<'r> {
     _rand: &'r OqsRand,
     algorithm: OqsKexAlg,
@@ -263,11 +290,12 @@ impl AliceMsg {
         AliceMsg { algorithm, data }
     }
 
-    /// Returns the key exchange algorithm used to compute this message
+    /// Returns the key exchange algorithm used to compute this message.
     pub fn algorithm(&self) -> OqsKexAlg {
         self.algorithm
     }
 
+    /// Returns the data in this message as a slice.
     pub fn data(&self) -> &[u8] {
         self.data.data()
     }
@@ -292,11 +320,12 @@ impl BobMsg {
         BobMsg { algorithm, data }
     }
 
-    /// Returns the key exchange algorithm used to compute this message
+    /// Returns the key exchange algorithm used to compute this message.
     pub fn algorithm(&self) -> OqsKexAlg {
         self.algorithm
     }
 
+    /// Returns the data in this message as a slice.
     pub fn data(&self) -> &[u8] {
         self.data.data()
     }
@@ -321,11 +350,12 @@ impl SharedKey {
         SharedKey { algorithm, data }
     }
 
-    /// Returns the key exchange algorithm used to compute this message
+    /// Returns the key exchange algorithm used to compute this key.
     pub fn algorithm(&self) -> OqsKexAlg {
         self.algorithm
     }
 
+    /// Returns the data in this key as a slice.
     pub fn data(&self) -> &[u8] {
         self.data.data()
     }
@@ -338,8 +368,10 @@ impl AsRef<[u8]> for SharedKey {
 }
 
 
+/// The local result alias for fallible operations in this module.
 pub type Result<T> = ::std::result::Result<T, Error>;
 
+/// Error representing a failure in any [`OqsKex`](struct.OqsRand.html) operation.
 #[derive(Debug, Copy, Clone, Hash)]
 pub struct Error;
 

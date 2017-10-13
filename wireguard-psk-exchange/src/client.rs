@@ -11,12 +11,11 @@ extern crate clap;
 extern crate env_logger;
 #[macro_use]
 extern crate error_chain;
-extern crate oqs;
 extern crate oqs_kex_rpc;
 extern crate wireguard_psk_exchange;
 
 use clap::Arg;
-use oqs::kex::{OqsKexAlg, SharedKey};
+use oqs_kex_rpc::{OqsKexAlg, SharedKey};
 use oqs_kex_rpc::client::OqsKexClient;
 
 use std::net::{IpAddr, SocketAddr};

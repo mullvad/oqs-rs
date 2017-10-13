@@ -12,22 +12,27 @@ use oqs::rand::{OqsRand, OqsRandAlg};
 
 use jsonrpc_client_http::HttpHandle;
 
-pub mod rpc;
+mod rpc;
 
 error_chain! {
     errors {
+        /// There was an error in the network communication or on the key exchange server.
         RpcError { description("RPC client returned an error") }
+        /// The server responded, but the returned messages don't match our request.
         InvalidResponse { description("RPC response is syntactically valid but unexpected") }
+        /// There was an error in the cryptographic operations in `oqs`.
         OqsError { description("OQS returned an error") }
     }
 }
 
+/// The key exchange client.
 pub struct OqsKexClient {
     rpc_client: rpc::OqsKexRpcClient<HttpHandle>,
     rand: OqsRandAlg,
 }
 
 impl OqsKexClient {
+    /// Connects to the given address and returns a client instance.
     pub fn new(server_uri: &str) -> Result<Self> {
         let rpc_client =
             rpc::OqsKexRpcClient::connect(server_uri).chain_err(|| ErrorKind::RpcError)?;
@@ -40,10 +45,23 @@ impl OqsKexClient {
         Ok(client)
     }
 
+    /// Configure which PRNG algorithm this client should use to source its entropy.
     pub fn set_rand(&mut self, rand: OqsRandAlg) {
         self.rand = rand;
     }
 
+    /// Performs a full key exchange with all the algorithms in `algs` at the same time.
+    ///
+    /// This will compute Alice's message for each given algorithm, and send them in one RPC
+    /// call to the server. The server will then compute the corresponding shared keys and Bob's
+    /// messages. Then the server return Bob's messages and this client finally computes
+    /// the shared keys and returns them.
+    ///
+    /// The returned vector has the same length as `algs` and the [`SharedKey`] at position `n`
+    /// corresponds to the [`OqsKexAlg`] at position `n` in `algs`.
+    ///
+    /// [`SharedKey`]: struct.SharedKey.html
+    /// [`OqsKexAlg`]: struct.OqsKexAlg.html
     pub fn kex(&mut self, algs: &[OqsKexAlg]) -> Result<Vec<SharedKey>> {
         let rand = OqsRand::new(self.rand).chain_err(|| ErrorKind::OqsError)?;
         let kexs = Self::init_kex(&rand, algs)?;
@@ -53,6 +71,12 @@ impl OqsKexClient {
             alice_kexs.len() == bob_msgs.len(),
             ErrorKind::InvalidResponse
         );
+        for (alice_kex, bob_msg) in alice_kexs.iter().zip(bob_msgs.iter()) {
+            ensure!(
+                alice_kex.algorithm() == bob_msg.algorithm(),
+                ErrorKind::InvalidResponse
+            )
+        }
         Self::alice_1(alice_kexs, &bob_msgs)
     }
 
