@@ -46,7 +46,7 @@ error_chain! {
 /// exchange.
 ///
 /// `meta_extractor` should be a type that, given a HTTP request, should compute some metadata that
-/// one want to associate with the final shared key. The `meta_extractor` will be called before
+/// one wants to associate with the final shared key. The `meta_extractor` will be called before
 /// any key exchange starts, and the resulting metadata will be fed to `on_kex` together with the
 /// resulting shared keys.
 pub fn start<ME, M, E, F>(addr: SocketAddr, meta_extractor: ME, on_kex: F) -> Result<Server>

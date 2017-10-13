@@ -52,10 +52,16 @@ impl OqsKexClient {
 
     /// Performs a full key exchange with all the algorithms in `algs` at the same time.
     ///
-    /// This will compute Alice's message for all the given algorithms and send them in one RPC
-    /// message to the server. The server will then compute the shared keys and Bob's messages for
-    /// all algorithms. Then the server return Bob's messages and this client finally computes
+    /// This will compute Alice's message for each given algorithm, and send them in one RPC
+    /// call to the server. The server will then compute the corresponding shared keys and Bob's
+    /// messages. Then the server return Bob's messages and this client finally computes
     /// the shared keys and returns them.
+    ///
+    /// The returned vector has the same length as `algs` and the [`SharedKey`] at position `n`
+    /// corresponds to the [`OqsKexAlg`] at position `n` is `algs`.
+    ///
+    /// [`SharedKey`]: struct.SharedKey.html
+    /// [`OqsKexAlg`]: struct.OqsKexAlg.html
     pub fn kex(&mut self, algs: &[OqsKexAlg]) -> Result<Vec<SharedKey>> {
         let rand = OqsRand::new(self.rand).chain_err(|| ErrorKind::OqsError)?;
         let kexs = Self::init_kex(&rand, algs)?;

@@ -5,7 +5,8 @@ This repository contains the following crates:
 * [`oqs`] - Higher level Rust representations.
 * [`oqs-kex-rpc`] - JSON-RPC 2.0 server and client for key exchange via [`oqs`].
 * [`wireguard-psk-exchange`] - Server and client programs for negotiating a wireguard compatible
-  pre-shared key over a wireguard tunnel. Used to later upgrade the tunnel to be post-quantum safe.
+  pre-shared key over a wireguard tunnel. This key can later be used to upgrade the tunnel to be
+  post-quantum safe.
 
 # Building
 

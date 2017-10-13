@@ -15,7 +15,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Added
-- RPC server listening on HTTP. Acts as the Bob half of a key exchange and hands off exchanged keys
+- RPC server listening on HTTP. Acts as the Bob side of a key exchange and hands off exchanged keys
   to a user supplied callback.
-- RPC client connecting over HTTP. Acts as the Alice half of a key exchange.
+- RPC client connecting over HTTP. Acts as the Alice side of a key exchange.
 - Test that performs a full key exchange over a real socket on localhost.

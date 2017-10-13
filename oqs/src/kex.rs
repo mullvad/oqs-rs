@@ -31,7 +31,9 @@ use buf::Buf;
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[allow(missing_docs)]
 pub enum OqsKexAlg {
-    /// The default KEX algorithm. Which algorithm that is the default is defined by `liboqs`.
+    /// The default KEX algorithm. This just maps to the `OQS_KEX_alg_default` enum value in
+    /// `liboqs`, so which algorithm is used as the default depends on which one it is set to
+    /// in `liboqs`.
     Default,
     RlweBcns15,
     RlweNewhope,
