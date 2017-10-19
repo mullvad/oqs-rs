@@ -22,12 +22,12 @@ before_script:
   - env
 
 script:
-  - cargo build --all
-  - cargo test --all
-  - cargo build --all --features serde
-  - cargo test --all --features serde
+  - cargo build
+  - cargo test
+  - cargo build --features serde
+  - cargo test --features serde
   - if [ "${TRAVIS_RUST_VERSION}" = "nightly" ]; then
-      cargo bench --no-run;
+      cargo build --benches --features serde;
     fi
 
 notifications:
