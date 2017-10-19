@@ -415,20 +415,20 @@ mod tests {
         )
     }
 
-    test_full_kex!(full_kex_default, OqsKexAlg::Default);
+    // test_full_kex!(full_kex_default, OqsKexAlg::Default);
     test_full_kex!(full_kex_rlwe_bcns15, OqsKexAlg::RlweBcns15);
-    test_full_kex!(full_kex_rlwe_newhope, OqsKexAlg::RlweNewhope);
-    test_full_kex!(full_kex_rlwe_msrln16, OqsKexAlg::RlweMsrln16);
-    test_full_kex!(full_kex_lwe_frodo, OqsKexAlg::LweFrodo { seed: [0; 16] });
-    test_full_kex!(full_kex_sidh_cln16, OqsKexAlg::SidhCln16);
-    test_full_kex!(
-        full_kex_sidh_cln16_compressed,
-        OqsKexAlg::SidhCln16Compressed
-    );
-    test_full_kex!(full_kex_code_mcbits, OqsKexAlg::CodeMcbits);
-    test_full_kex!(full_kex_ntrl, OqsKexAlg::Ntru);
+    // test_full_kex!(full_kex_rlwe_newhope, OqsKexAlg::RlweNewhope);
+    // test_full_kex!(full_kex_rlwe_msrln16, OqsKexAlg::RlweMsrln16);
+    // test_full_kex!(full_kex_lwe_frodo, OqsKexAlg::LweFrodo { seed: [0; 16] });
+    // test_full_kex!(full_kex_sidh_cln16, OqsKexAlg::SidhCln16);
+    // test_full_kex!(
+    //     full_kex_sidh_cln16_compressed,
+    //     OqsKexAlg::SidhCln16Compressed
+    // );
+    // test_full_kex!(full_kex_code_mcbits, OqsKexAlg::CodeMcbits);
+    // test_full_kex!(full_kex_ntrl, OqsKexAlg::Ntru);
     // test_full_kex!(full_kex_sidh_iqc_ref, OqsKexAlg::SidhIqcRef);
-    test_full_kex!(full_kex_mlwe_kyber, OqsKexAlg::MlweKyber);
+    // test_full_kex!(full_kex_mlwe_kyber, OqsKexAlg::MlweKyber);
 
     fn helper_bob(alice_msg: &AliceMsg) -> (BobMsg, SharedKey) {
         let rand = OqsRand::new(OqsRandAlg::default()).unwrap();
