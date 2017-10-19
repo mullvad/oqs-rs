@@ -9,11 +9,18 @@ rust:
   - beta
 os:
   - linux
+  - osx
 
 before_install:
-  - sudo add-apt-repository ppa:elt/libsodium -y
-  - sudo apt-get -qq update
-  - sudo apt-get install -y clang libsodium-dev
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      sudo add-apt-repository ppa:elt/libsodium -y;
+      sudo apt-get -qq update;
+      sudo apt-get install -y clang libsodium-dev;
+    fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      brew update;
+      brew install libsodium;
+    fi
 
 before_script:
   - ./build-liboqs.sh $HOME
