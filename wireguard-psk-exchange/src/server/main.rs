@@ -16,7 +16,7 @@ extern crate wireguard_psk_exchange;
 
 use error_chain::ChainedError;
 
-use oqs_kex_rpc::SharedKey;
+use oqs_kex_rpc::{OqsKexAlg, SharedKey};
 
 use std::result::Result as StdResult;
 use std::path::{Path, PathBuf};
@@ -52,7 +52,10 @@ fn main() {
     let on_kex_script = settings.on_kex_script;
     let on_kex = move |meta: KexMetadata, keys: Vec<SharedKey>| on_kex(meta, &keys, &on_kex_script);
 
-    let server = oqs_kex_rpc::server::start(settings.listen_addr, meta_extractor, on_kex)
+    let constraints = oqs_kex_rpc::server::ServerConstraints::new_init(
+        &[OqsKexAlg::RlweNewhope, OqsKexAlg::CodeMcbits, OqsKexAlg::SidhCln16], 3, 1);
+
+    let server = oqs_kex_rpc::server::start(settings.listen_addr, meta_extractor, on_kex, constraints)
         .expect("Unable to start server");
     server.wait();
 }
