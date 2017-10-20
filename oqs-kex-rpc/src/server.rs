@@ -11,11 +11,12 @@
 
 use futures;
 use oqs;
-use oqs::kex::{AliceMsg, BobMsg, OqsKex, SharedKey};
+use oqs::kex::{AliceMsg, BobMsg, OqsKex, OqsKexAlg, SharedKey};
 use oqs::rand::{OqsRand, OqsRandAlg};
 
 use error_chain::ChainedError;
 
+use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::marker::PhantomData;
 use std::result::Result as StdResult;
@@ -36,6 +37,8 @@ error_chain! {
         OqsError { description("OQS error") }
         /// There was an error in the user supplied callback.
         CallbackError { description("Error in on_kex callback") }
+        /// The client RPC message did not meet configured server constraints.
+        ConstraintError { description("Client RPC message does not meet constraints") }
     }
 }
 
@@ -49,14 +52,14 @@ error_chain! {
 /// one wants to associate with the final shared key. The `meta_extractor` will be called before
 /// any key exchange starts, and the resulting metadata will be fed to `on_kex` together with the
 /// resulting shared keys.
-pub fn start<ME, M, E, F>(addr: SocketAddr, meta_extractor: ME, on_kex: F) -> Result<Server>
+pub fn start<ME, M, E, F>(addr: SocketAddr, meta_extractor: ME, on_kex: F, constraints: ServerConstraints) -> Result<Server>
 where
     M: Metadata + Sync,
     ME: MetaExtractor<M>,
     E: ::std::error::Error + Send + 'static,
     F: Fn(M, Vec<SharedKey>) -> StdResult<(), E> + Send + Sync + 'static,
 {
-    let server = OqsKexRpcServer::new(on_kex);
+    let server = OqsKexRpcServer::new(on_kex, constraints);
     let mut io = MetaIoHandler::default();
     io.extend_with(server.to_delegate());
 
@@ -82,6 +85,61 @@ mod api {
 }
 use self::api::OqsKexRpcServerApi;
 
+/// Defines a runtime configuration with constraints the server must adhere to.
+pub struct ServerConstraints {
+    /// Identifiers of all algorithms to enable in the server.
+    pub algorithms: Vec<OqsKexAlg>,
+    /// Max number of allowed requests in a single RPC message.
+    pub max_algorithms: usize,
+    /// Max number of times a specific algorithm is allowed to occur in a single RPC message.
+    pub max_occurrences: usize,
+}
+
+impl ServerConstraints {
+    /// Creates a configuration without any constraints.
+    pub fn new() -> Self {
+        ServerConstraints {
+            algorithms: Vec::new(),
+            max_algorithms: 0,
+            max_occurrences: 0,
+        }
+    }
+
+    /// Creates a configuration with the specified constraints.
+    pub fn new_init(algorithms: &[OqsKexAlg], max_algorithms: usize, max_occurrences: usize) -> Self {
+        ServerConstraints {
+            algorithms: algorithms.to_vec(),
+            max_algorithms,
+            max_occurrences,
+        }
+    }
+
+    fn is_none(&self) -> bool {
+        self.algorithms.len() == 0 && self.max_algorithms == 0 && self.max_occurrences == 0
+    }
+
+    fn ensure_meets_max_algorithms(&self, algorithms: usize) -> Result<()> {
+        if self.max_algorithms != 0 {
+            ensure!(algorithms <= self.max_algorithms, ErrorKind::ConstraintError);
+        }
+        Ok(())
+    }
+
+    fn ensure_meets_max_occurrences(&self, occurrences: usize) -> Result<()> {
+        if self.max_occurrences != 0 {
+            ensure!(occurrences <= self.max_occurrences, ErrorKind::ConstraintError);
+        }
+        Ok(())
+    }
+
+    fn ensure_is_allowed_algorithm(&self, algorithm: OqsKexAlg) -> Result<()> {
+        if self.algorithms.len() != 0 {
+            ensure!(self.algorithms.contains(&algorithm), ErrorKind::ConstraintError);
+        }
+        Ok(())
+    }
+}
+
 struct OqsKexRpcServer<M, E, F>
 where
     M: Metadata,
@@ -90,6 +148,7 @@ where
 {
     pub on_kex: F,
     _meta: PhantomData<M>,
+    constraints: ServerConstraints,
 }
 
 impl<M, E, F> OqsKexRpcServer<M, E, F>
@@ -98,19 +157,41 @@ where
     E: ::std::error::Error + Send + 'static,
     F: Fn(M, Vec<SharedKey>) -> StdResult<(), E> + Send + Sync + 'static,
 {
-    pub fn new(on_kex: F) -> Self {
+    pub fn new(on_kex: F, constraints: ServerConstraints) -> Self {
         OqsKexRpcServer {
             on_kex,
             _meta: PhantomData,
+            constraints,
         }
     }
 
     fn perform_exchange(&self, meta: M, alice_msgs: &[AliceMsg]) -> Result<Vec<BobMsg>> {
+        self.check_constraints(alice_msgs)?;
         let rand = OqsRand::new(OqsRandAlg::default()).chain_err(|| ErrorKind::OqsError)?;
         let kexs = Self::init_kex(&rand, &alice_msgs)?;
         let (bob_msgs, keys) = Self::bob(&kexs, alice_msgs)?;
         (self.on_kex)(meta, keys).chain_err(|| ErrorKind::CallbackError)?;
         Ok(bob_msgs)
+    }
+
+    fn check_constraints(&self, alice_msgs: &[AliceMsg]) -> Result<()> {
+        if self.constraints.is_none() {
+            return Ok(());
+        }
+
+        self.constraints.ensure_meets_max_algorithms(alice_msgs.len())?;
+        let mut alice_algos = HashMap::new();
+
+        for alice_msg in alice_msgs.iter() {
+            *alice_algos.entry(alice_msg.algorithm()).or_insert(0) += 1;
+        }
+
+        for (alice_algo, alice_algo_count) in alice_algos.iter() {
+            self.constraints.ensure_is_allowed_algorithm(*alice_algo)?;
+            self.constraints.ensure_meets_max_occurrences(*alice_algo_count)?;
+        }
+
+        Ok(())
     }
 
     fn init_kex<'r>(rand: &'r OqsRand, msgs: &[AliceMsg]) -> Result<Vec<OqsKex<'r>>> {
