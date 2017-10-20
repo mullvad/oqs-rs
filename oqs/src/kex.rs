@@ -415,7 +415,7 @@ mod tests {
         )
     }
 
-    // test_full_kex!(full_kex_default, OqsKexAlg::Default);
+    test_full_kex!(full_kex_default, OqsKexAlg::Default);
     test_full_kex!(full_kex_rlwe_bcns15, OqsKexAlg::RlweBcns15);
     // test_full_kex!(full_kex_rlwe_newhope, OqsKexAlg::RlweNewhope);
     // test_full_kex!(full_kex_rlwe_msrln16, OqsKexAlg::RlweMsrln16);
