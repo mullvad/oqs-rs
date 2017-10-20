@@ -12,7 +12,7 @@ extern crate oqs;
 extern crate oqs_kex_rpc;
 
 use oqs::kex::{OqsKexAlg, SharedKey};
-use oqs_kex_rpc::{server, client};
+use oqs_kex_rpc::{client, server};
 
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::str::FromStr;
@@ -46,14 +46,49 @@ macro_rules! test_client_server {
     )
 }
 
-test_client_server!(test_regular_request, algos_default, constraints_none, verify_kex_succeeds);
-test_client_server!(test_exotic_request, algos_exotic, constraints_none, verify_kex_succeeds);
-test_client_server!(test_null_request, algos_none, constraints_none, verify_kex_succeeds);
-test_client_server!(test_regular_request_constrained, algos_default, constraints_default, verify_kex_succeeds);
+test_client_server!(
+    test_regular_request,
+    algos_default,
+    constraints_none,
+    verify_kex_succeeds
+);
+test_client_server!(
+    test_exotic_request,
+    algos_exotic,
+    constraints_none,
+    verify_kex_succeeds
+);
+test_client_server!(
+    test_null_request,
+    algos_none,
+    constraints_none,
+    verify_kex_succeeds
+);
+test_client_server!(
+    test_regular_request_constrained,
+    algos_default,
+    constraints_default,
+    verify_kex_succeeds
+);
 
-test_client_server!(test_only_enabled_algo_allowed, algos_exotic, constraints_default, verify_kex_fails);
-test_client_server!(test_max_algorithm_constraint, algos_three_newhope, constraints_max_two_algos, verify_kex_fails);
-test_client_server!(test_max_occurrences_constraint, algos_two_newhope, constraints_single_newhope_only, verify_kex_fails);
+test_client_server!(
+    test_only_enabled_algo_allowed,
+    algos_exotic,
+    constraints_default,
+    verify_kex_fails
+);
+test_client_server!(
+    test_max_algorithm_constraint,
+    algos_three_newhope,
+    constraints_max_two_algos,
+    verify_kex_fails
+);
+test_client_server!(
+    test_max_occurrences_constraint,
+    algos_two_newhope,
+    constraints_single_newhope_only,
+    verify_kex_fails
+);
 
 fn constraints_none() -> server::ServerConstraints {
     server::ServerConstraints::new()
@@ -76,27 +111,39 @@ fn algos_none() -> Vec<OqsKexAlg> {
 }
 
 fn algos_default() -> Vec<OqsKexAlg> {
-    vec!(OqsKexAlg::RlweNewhope, OqsKexAlg::CodeMcbits, OqsKexAlg::SidhCln16)
+    vec![
+        OqsKexAlg::RlweNewhope,
+        OqsKexAlg::CodeMcbits,
+        OqsKexAlg::SidhCln16,
+    ]
 }
 
 fn algos_exotic() -> Vec<OqsKexAlg> {
-    vec!(OqsKexAlg::MlweKyber, OqsKexAlg::Ntru)
+    vec![OqsKexAlg::MlweKyber, OqsKexAlg::Ntru]
 }
 
 fn algos_two_newhope() -> Vec<OqsKexAlg> {
-    vec!(OqsKexAlg::RlweNewhope, OqsKexAlg::RlweNewhope)
+    vec![OqsKexAlg::RlweNewhope, OqsKexAlg::RlweNewhope]
 }
 
 fn algos_three_newhope() -> Vec<OqsKexAlg> {
-    vec!(OqsKexAlg::RlweNewhope, OqsKexAlg::RlweNewhope, OqsKexAlg::RlweNewhope)
+    vec![
+        OqsKexAlg::RlweNewhope,
+        OqsKexAlg::RlweNewhope,
+        OqsKexAlg::RlweNewhope,
+    ]
 }
 
-fn verify_kex_succeeds(client: &mut client::OqsKexClient, algorithms: &[OqsKexAlg],
-    server_channel: &mpsc::Receiver<(Metadata, Vec<SharedKey>)>) {
+fn verify_kex_succeeds(
+    client: &mut client::OqsKexClient,
+    algorithms: &[OqsKexAlg],
+    server_channel: &mpsc::Receiver<(Metadata, Vec<SharedKey>)>,
+) {
     let client_keys = client
         .kex(algorithms)
         .expect("Error in client during exchange");
-    let (_meta, server_keys) = server_channel.recv_timeout(Duration::from_secs(1))
+    let (_meta, server_keys) = server_channel
+        .recv_timeout(Duration::from_secs(1))
         .expect("Server did not output keys");
 
     assert_eq!(client_keys.len(), algorithms.len());
@@ -106,9 +153,15 @@ fn verify_kex_succeeds(client: &mut client::OqsKexClient, algorithms: &[OqsKexAl
     }
 }
 
-fn verify_kex_fails(client: &mut client::OqsKexClient, algorithms: &[OqsKexAlg],
-    _server_channel: &mpsc::Receiver<(Metadata, Vec<SharedKey>)>) {
-    assert!(client.kex(algorithms).is_err(), "An expected failure in kex did NOT occur");
+fn verify_kex_fails(
+    client: &mut client::OqsKexClient,
+    algorithms: &[OqsKexAlg],
+    _server_channel: &mpsc::Receiver<(Metadata, Vec<SharedKey>)>,
+) {
+    assert!(
+        client.kex(algorithms).is_err(),
+        "An expected failure in kex did NOT occur"
+    );
 }
 
 fn meta_extractor(request: &jsonrpc_http_server::hyper::Request) -> Metadata {

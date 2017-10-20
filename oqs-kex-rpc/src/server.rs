@@ -52,7 +52,12 @@ error_chain! {
 /// one wants to associate with the final shared key. The `meta_extractor` will be called before
 /// any key exchange starts, and the resulting metadata will be fed to `on_kex` together with the
 /// resulting shared keys.
-pub fn start<ME, M, E, F>(addr: SocketAddr, meta_extractor: ME, on_kex: F, constraints: ServerConstraints) -> Result<Server>
+pub fn start<ME, M, E, F>(
+    addr: SocketAddr,
+    meta_extractor: ME,
+    on_kex: F,
+    constraints: ServerConstraints,
+) -> Result<Server>
 where
     M: Metadata + Sync,
     ME: MetaExtractor<M>,
@@ -106,7 +111,11 @@ impl ServerConstraints {
     }
 
     /// Creates a configuration with the specified constraints.
-    pub fn new_init(algorithms: &[OqsKexAlg], max_algorithms: usize, max_occurrences: usize) -> Self {
+    pub fn new_init(
+        algorithms: &[OqsKexAlg],
+        max_algorithms: usize,
+        max_occurrences: usize,
+    ) -> Self {
         ServerConstraints {
             algorithms: algorithms.to_vec(),
             max_algorithms,
@@ -120,21 +129,30 @@ impl ServerConstraints {
 
     fn ensure_meets_max_algorithms(&self, algorithms: usize) -> Result<()> {
         if self.max_algorithms != 0 {
-            ensure!(algorithms <= self.max_algorithms, ErrorKind::ConstraintError);
+            ensure!(
+                algorithms <= self.max_algorithms,
+                ErrorKind::ConstraintError
+            );
         }
         Ok(())
     }
 
     fn ensure_meets_max_occurrences(&self, occurrences: usize) -> Result<()> {
         if self.max_occurrences != 0 {
-            ensure!(occurrences <= self.max_occurrences, ErrorKind::ConstraintError);
+            ensure!(
+                occurrences <= self.max_occurrences,
+                ErrorKind::ConstraintError
+            );
         }
         Ok(())
     }
 
     fn ensure_is_allowed_algorithm(&self, algorithm: OqsKexAlg) -> Result<()> {
         if self.algorithms.len() != 0 {
-            ensure!(self.algorithms.contains(&algorithm), ErrorKind::ConstraintError);
+            ensure!(
+                self.algorithms.contains(&algorithm),
+                ErrorKind::ConstraintError
+            );
         }
         Ok(())
     }
@@ -179,7 +197,8 @@ where
             return Ok(());
         }
 
-        self.constraints.ensure_meets_max_algorithms(alice_msgs.len())?;
+        self.constraints
+            .ensure_meets_max_algorithms(alice_msgs.len())?;
         let mut alice_algos = HashMap::new();
 
         for alice_msg in alice_msgs.iter() {
@@ -188,7 +207,8 @@ where
 
         for (alice_algo, alice_algo_count) in alice_algos.iter() {
             self.constraints.ensure_is_allowed_algorithm(*alice_algo)?;
-            self.constraints.ensure_meets_max_occurrences(*alice_algo_count)?;
+            self.constraints
+                .ensure_meets_max_occurrences(*alice_algo_count)?;
         }
 
         Ok(())
