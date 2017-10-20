@@ -29,7 +29,7 @@ mod wg;
 
 static WG_IFACE: &str = "wg0";
 
-static ALLOWED_KEX_ALGORITHMS: &[OqsKexAlg] = [
+static ALLOWED_KEX_ALGORITHMS: &[OqsKexAlg] = &[
     OqsKexAlg::RlweNewhope,
     OqsKexAlg::CodeMcbits,
     OqsKexAlg::SidhCln16,
@@ -58,10 +58,10 @@ fn main() {
     let on_kex_script = settings.on_kex_script;
     let on_kex = move |meta: KexMetadata, keys: Vec<SharedKey>| on_kex(meta, &keys, &on_kex_script);
 
-    let constraints = oqs_kex_rpc::server::ServerConstraints::new_init(
-        ALLOWED_KEX_ALGORITHMS,
-        ALLOWED_KEX_ALGORITHMS.len(),
-        1,
+    let constraints = oqs_kex_rpc::server::ServerConstraints::new(
+        Some(ALLOWED_KEX_ALGORITHMS),
+        Some(ALLOWED_KEX_ALGORITHMS.len()),
+        Some(1),
     );
 
     let server =

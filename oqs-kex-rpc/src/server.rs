@@ -91,69 +91,82 @@ mod api {
 use self::api::OqsKexRpcServerApi;
 
 /// Defines a runtime configuration with constraints the server must adhere to.
+#[derive(Default)]
 pub struct ServerConstraints {
     /// Identifiers of all algorithms to enable in the server.
-    pub algorithms: Vec<OqsKexAlg>,
+    pub algorithms: Option<Vec<OqsKexAlg>>,
     /// Max number of allowed requests in a single RPC message.
-    pub max_algorithms: usize,
+    pub max_algorithms: Option<usize>,
     /// Max number of times a specific algorithm is allowed to occur in a single RPC message.
-    pub max_occurrences: usize,
+    pub max_occurrences: Option<usize>,
 }
 
 impl ServerConstraints {
-    /// Creates a configuration without any constraints.
-    pub fn new() -> Self {
-        ServerConstraints {
-            algorithms: Vec::new(),
-            max_algorithms: 0,
-            max_occurrences: 0,
-        }
-    }
-
     /// Creates a configuration with the specified constraints.
-    pub fn new_init(
-        algorithms: &[OqsKexAlg],
-        max_algorithms: usize,
-        max_occurrences: usize,
+    pub fn new(
+        algorithms: Option<&[OqsKexAlg]>,
+        max_algorithms: Option<usize>,
+        max_occurrences: Option<usize>,
     ) -> Self {
         ServerConstraints {
-            algorithms: algorithms.to_vec(),
+            algorithms: (match algorithms {
+                Some(a) => Some(a.to_vec()),
+                _ => None,
+            }),
             max_algorithms,
             max_occurrences,
         }
     }
 
-    fn is_none(&self) -> bool {
-        self.algorithms.len() == 0 && self.max_algorithms == 0 && self.max_occurrences == 0
+    fn empty(&self) -> bool {
+        self.algorithms.is_none() && self.max_algorithms.is_none() && self.max_occurrences.is_none()
     }
 
-    fn ensure_meets_max_algorithms(&self, algorithms: usize) -> Result<()> {
-        if self.max_algorithms != 0 {
-            ensure!(
-                algorithms <= self.max_algorithms,
+    fn meets_max_algorithms(&self, algorithms: usize) -> bool {
+        match self.max_algorithms {
+            Some(max_algorithms) => algorithms <= max_algorithms,
+            None => true,
+        }
+    }
+
+    fn meets_max_occurrences(&self, occurrences: usize) -> bool {
+        match self.max_occurrences {
+            Some(max_occurrences) => occurrences <= max_occurrences,
+            None => true,
+        }
+    }
+
+    fn is_allowed_algorithm(&self, algorithm: OqsKexAlg) -> bool {
+        match self.algorithms {
+            Some(ref algorithms) => algorithms.contains(&algorithm),
+            None => true,
+        }
+    }
+
+    fn check_constraints(&self, alice_msgs: &[AliceMsg]) -> Result<()> {
+        if self.empty() {
+            return Ok(());
+        }
+
+        assert!(
+            self.meets_max_algorithms(alice_msgs.len()),
+            ErrorKind::ConstraintError
+        );
+
+        let mut alice_algos = HashMap::new();
+
+        for alice_msg in alice_msgs.iter() {
+            *alice_algos.entry(alice_msg.algorithm()).or_insert(0) += 1;
+        }
+
+        for (alice_algo, alice_algo_count) in alice_algos.iter() {
+            assert!(
+                self.is_allowed_algorithm(*alice_algo)
+                    && self.meets_max_occurrences(*alice_algo_count),
                 ErrorKind::ConstraintError
             );
         }
-        Ok(())
-    }
 
-    fn ensure_meets_max_occurrences(&self, occurrences: usize) -> Result<()> {
-        if self.max_occurrences != 0 {
-            ensure!(
-                occurrences <= self.max_occurrences,
-                ErrorKind::ConstraintError
-            );
-        }
-        Ok(())
-    }
-
-    fn ensure_is_allowed_algorithm(&self, algorithm: OqsKexAlg) -> Result<()> {
-        if self.algorithms.len() != 0 {
-            ensure!(
-                self.algorithms.contains(&algorithm),
-                ErrorKind::ConstraintError
-            );
-        }
         Ok(())
     }
 }
@@ -184,34 +197,12 @@ where
     }
 
     fn perform_exchange(&self, meta: M, alice_msgs: &[AliceMsg]) -> Result<Vec<BobMsg>> {
-        self.check_constraints(alice_msgs)?;
+        self.constraints.check_constraints(alice_msgs)?;
         let rand = OqsRand::new(OqsRandAlg::default()).chain_err(|| ErrorKind::OqsError)?;
         let kexs = Self::init_kex(&rand, &alice_msgs)?;
         let (bob_msgs, keys) = Self::bob(&kexs, alice_msgs)?;
         (self.on_kex)(meta, keys).chain_err(|| ErrorKind::CallbackError)?;
         Ok(bob_msgs)
-    }
-
-    fn check_constraints(&self, alice_msgs: &[AliceMsg]) -> Result<()> {
-        if self.constraints.is_none() {
-            return Ok(());
-        }
-
-        self.constraints
-            .ensure_meets_max_algorithms(alice_msgs.len())?;
-        let mut alice_algos = HashMap::new();
-
-        for alice_msg in alice_msgs.iter() {
-            *alice_algos.entry(alice_msg.algorithm()).or_insert(0) += 1;
-        }
-
-        for (alice_algo, alice_algo_count) in alice_algos.iter() {
-            self.constraints.ensure_is_allowed_algorithm(*alice_algo)?;
-            self.constraints
-                .ensure_meets_max_occurrences(*alice_algo_count)?;
-        }
-
-        Ok(())
     }
 
     fn init_kex<'r>(rand: &'r OqsRand, msgs: &[AliceMsg]) -> Result<Vec<OqsKex<'r>>> {
