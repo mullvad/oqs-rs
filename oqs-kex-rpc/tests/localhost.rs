@@ -91,19 +91,20 @@ test_client_server!(
 );
 
 fn constraints_none() -> server::ServerConstraints {
-    server::ServerConstraints::new()
+    server::ServerConstraints::default()
 }
 
 fn constraints_default() -> server::ServerConstraints {
-    server::ServerConstraints::new_init(&algos_default(), 3, 1)
+    let algos = algos_default();
+    server::ServerConstraints::new(Some(&algos), Some(algos.len()), Some(1))
 }
 
 fn constraints_single_newhope_only() -> server::ServerConstraints {
-    server::ServerConstraints::new_init(&algos_default(), 1, 1)
+    server::ServerConstraints::new(Some(&[OqsKexAlg::RlweNewhope]), Some(1), Some(1))
 }
 
 fn constraints_max_two_algos() -> server::ServerConstraints {
-    server::ServerConstraints::new_init(&Vec::new(), 2, 0)
+    server::ServerConstraints::new(None, Some(2), None)
 }
 
 fn algos_none() -> Vec<OqsKexAlg> {
