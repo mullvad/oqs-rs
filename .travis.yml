@@ -10,6 +10,8 @@ rust:
 os:
   - linux
   - osx
+# Just to get newer brew repo, to avoid `brew update`.
+osx_image: xcode9.1
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
@@ -18,7 +20,6 @@ before_install:
       sudo apt-get install -y clang libsodium-dev;
     fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-      brew update;
       brew install libsodium;
     fi
 
