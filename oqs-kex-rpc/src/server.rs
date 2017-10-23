@@ -116,10 +116,6 @@ impl ServerConstraints {
     }
 
     fn check_constraints(&self, alice_msgs: &[AliceMsg]) -> bool {
-        if self.empty() {
-            return true;
-        }
-
         if !self.meets_max_algorithms(alice_msgs.len()) {
             return false;
         }
@@ -139,10 +135,6 @@ impl ServerConstraints {
         }
 
         true
-    }
-
-    fn empty(&self) -> bool {
-        self.algorithms.is_none() && self.max_algorithms.is_none() && self.max_occurrences.is_none()
     }
 
     fn meets_max_algorithms(&self, algorithms: usize) -> bool {
