@@ -115,21 +115,19 @@ impl ServerConstraints {
         }
     }
 
-    fn check_constraints(&self, alice_msgs: &[AliceMsg]) -> bool {
-        if !self.meets_max_algorithms(alice_msgs.len()) {
+    fn check_constraints(&self, algorithms: &[OqsKexAlg]) -> bool {
+        if !self.meets_max_algorithms(algorithms.len()) {
             return false;
         }
 
-        let mut alice_algos = HashMap::new();
+        let mut stats = HashMap::new();
 
-        for alice_msg in alice_msgs.iter() {
-            *alice_algos.entry(alice_msg.algorithm()).or_insert(0) += 1;
+        for algo in algorithms.iter() {
+            *stats.entry(*algo).or_insert(0) += 1;
         }
 
-        for (alice_algo, alice_algo_count) in alice_algos.iter() {
-            if !self.is_allowed_algorithm(*alice_algo)
-                || !self.meets_max_occurrences(*alice_algo_count)
-            {
+        for (algo, algo_count) in stats.iter() {
+            if !self.is_allowed_algorithm(*algo) || !self.meets_max_occurrences(*algo_count) {
                 return false;
             }
         }
@@ -186,7 +184,10 @@ where
 
     fn perform_exchange(&self, meta: M, alice_msgs: &[AliceMsg]) -> Result<Vec<BobMsg>> {
         ensure!(
-            self.constraints.check_constraints(alice_msgs),
+            self.constraints.check_constraints(&alice_msgs
+                .iter()
+                .map(|msg| msg.algorithm())
+                .collect::<Vec<OqsKexAlg>>()),
             ErrorKind::ConstraintError
         );
         let rand = OqsRand::new(OqsRandAlg::default()).chain_err(|| ErrorKind::OqsError)?;
