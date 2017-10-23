@@ -17,3 +17,6 @@ jsonrpc-macros = "7.1.1"
 jsonrpc-http-server = "7.1.1"
 futures = "0.1"
 log = "0.3"
+
+[dev-dependencies]
+lazy_static = "0.2.9"
