@@ -101,6 +101,16 @@ pub struct ServerConstraints {
     pub max_occurrences: Option<usize>,
 }
 
+impl Clone for ServerConstraints {
+    fn clone(&self) -> ServerConstraints {
+        ServerConstraints::new(
+            self.algorithms.clone(),
+            self.max_algorithms,
+            self.max_occurrences,
+        )
+    }
+}
+
 impl ServerConstraints {
     /// Creates a configuration with the specified constraints.
     pub fn new(

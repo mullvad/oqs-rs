@@ -10,6 +10,9 @@ extern crate jsonrpc_core;
 extern crate jsonrpc_http_server;
 extern crate oqs_kex_rpc;
 
+#[macro_use]
+extern crate lazy_static;
+
 use oqs_kex_rpc::{client, server, OqsKexAlg, SharedKey};
 
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
@@ -17,121 +20,104 @@ use std::str::FromStr;
 use std::sync::{mpsc, Mutex};
 use std::time::Duration;
 
-macro_rules! test_client_server {
-    ($name:ident, $algos:expr, $constraints:expr, $verification:expr) => (
-        #[test]
-        fn $name() {
-            let local_addr = SocketAddr::from_str("127.0.0.1:0").unwrap();
-            let algorithms = $algos();
+fn test_helper(
+    algorithms: &[OqsKexAlg],
+    constraints: &server::ServerConstraints,
+    verifier: fn(
+        &mut client::OqsKexClient,
+        &[OqsKexAlg],
+        &mpsc::Receiver<(Metadata, Vec<SharedKey>)>,
+    ),
+) {
+    let local_addr = SocketAddr::from_str("127.0.0.1:0").unwrap();
 
-            let (tx, rx) = mpsc::channel();
-            let tx = Mutex::new(tx);
-            let on_kex = move |meta: Metadata, keys| {
-                tx.lock().unwrap().send((meta, keys)).unwrap();
-                Ok(()) as Result<(), ::std::io::Error>
-            };
+    let (tx, rx) = mpsc::channel();
+    let tx = Mutex::new(tx);
+    let on_kex = move |meta: Metadata, keys| {
+        tx.lock().unwrap().send((meta, keys)).unwrap();
+        Ok(()) as Result<(), ::std::io::Error>
+    };
 
-            let server = server::start(local_addr, meta_extractor, on_kex,
-                $constraints()).unwrap();
+    let server = server::start(local_addr, meta_extractor, on_kex, constraints.clone()).unwrap();
 
-            let http_addr = format!("http://{}", server.address());
-            println!("kex server listening on {}", http_addr);
+    let http_addr = format!("http://{}", server.address());
+    println!("kex server listening on {}", http_addr);
 
-            let mut client = client::OqsKexClient::new(&http_addr).unwrap();
+    let mut client = client::OqsKexClient::new(&http_addr).unwrap();
 
-            $verification(&mut client, &algorithms, &rx);
-        }
+    verifier(&mut client, algorithms, &rx);
+}
+
+lazy_static! {
+    static ref CONSTRAINTS_NONE: server::ServerConstraints =
+        server::ServerConstraints::default();
+    static ref CONSTRAINTS_DEFAULT: server::ServerConstraints =
+        server::ServerConstraints::new(
+            Some(ALGOS_DEFAULT.to_vec()),
+            Some(ALGOS_DEFAULT.len()),
+            Some(1),
+        );
+    static ref CONSTRAINTS_SINGLE_NEWHOPE: server::ServerConstraints =
+        server::ServerConstraints::new(Some(vec![OqsKexAlg::RlweNewhope]), Some(1), Some(1));
+    static ref CONSTRAINTS_MAX_TWO_ALGOS: server::ServerConstraints =
+        server::ServerConstraints::new(None, Some(2), None);
+}
+
+static ALGOS_NONE: &[OqsKexAlg] = &[];
+static ALGOS_DEFAULT: &[OqsKexAlg] = &[
+    OqsKexAlg::RlweNewhope,
+    OqsKexAlg::CodeMcbits,
+    OqsKexAlg::SidhCln16,
+];
+static ALGOS_EXOTIC: &[OqsKexAlg] = &[OqsKexAlg::MlweKyber, OqsKexAlg::Ntru];
+static ALGOS_TWO_NEWHOPE: &[OqsKexAlg] = &[OqsKexAlg::RlweNewhope, OqsKexAlg::RlweNewhope];
+static ALGOS_THREE_NEWHOPE: &[OqsKexAlg] = &[
+    OqsKexAlg::RlweNewhope,
+    OqsKexAlg::RlweNewhope,
+    OqsKexAlg::RlweNewhope,
+];
+
+#[test]
+fn test_regular_request() {
+    test_helper(ALGOS_DEFAULT, &CONSTRAINTS_NONE, verify_kex_succeeds)
+}
+
+#[test]
+fn test_exotic_request() {
+    test_helper(ALGOS_EXOTIC, &CONSTRAINTS_NONE, verify_kex_succeeds)
+}
+
+#[test]
+fn test_null_request() {
+    test_helper(ALGOS_NONE, &CONSTRAINTS_NONE, verify_kex_succeeds)
+}
+
+#[test]
+fn test_regular_request_constrained() {
+    test_helper(ALGOS_DEFAULT, &CONSTRAINTS_DEFAULT, verify_kex_succeeds)
+}
+
+#[test]
+fn test_only_enabled_algos_allowed() {
+    test_helper(ALGOS_EXOTIC, &CONSTRAINTS_DEFAULT, verify_kex_fails)
+}
+
+#[test]
+fn test_max_algorithm_constraint() {
+    test_helper(
+        ALGOS_THREE_NEWHOPE,
+        &CONSTRAINTS_MAX_TWO_ALGOS,
+        verify_kex_fails,
     )
 }
 
-test_client_server!(
-    test_regular_request,
-    algos_default,
-    constraints_none,
-    verify_kex_succeeds
-);
-test_client_server!(
-    test_exotic_request,
-    algos_exotic,
-    constraints_none,
-    verify_kex_succeeds
-);
-test_client_server!(
-    test_null_request,
-    algos_none,
-    constraints_none,
-    verify_kex_succeeds
-);
-test_client_server!(
-    test_regular_request_constrained,
-    algos_default,
-    constraints_default,
-    verify_kex_succeeds
-);
-
-test_client_server!(
-    test_only_enabled_algo_allowed,
-    algos_exotic,
-    constraints_default,
-    verify_kex_fails
-);
-test_client_server!(
-    test_max_algorithm_constraint,
-    algos_three_newhope,
-    constraints_max_two_algos,
-    verify_kex_fails
-);
-test_client_server!(
-    test_max_occurrences_constraint,
-    algos_two_newhope,
-    constraints_single_newhope_only,
-    verify_kex_fails
-);
-
-fn constraints_none() -> server::ServerConstraints {
-    server::ServerConstraints::default()
-}
-
-fn constraints_default() -> server::ServerConstraints {
-    let algos = algos_default();
-    let algos_len = algos.len();
-    server::ServerConstraints::new(Some(algos), Some(algos_len), Some(1))
-}
-
-fn constraints_single_newhope_only() -> server::ServerConstraints {
-    server::ServerConstraints::new(Some(vec![OqsKexAlg::RlweNewhope]), Some(1), Some(1))
-}
-
-fn constraints_max_two_algos() -> server::ServerConstraints {
-    server::ServerConstraints::new(None, Some(2), None)
-}
-
-fn algos_none() -> Vec<OqsKexAlg> {
-    Vec::new()
-}
-
-fn algos_default() -> Vec<OqsKexAlg> {
-    vec![
-        OqsKexAlg::RlweNewhope,
-        OqsKexAlg::CodeMcbits,
-        OqsKexAlg::SidhCln16,
-    ]
-}
-
-fn algos_exotic() -> Vec<OqsKexAlg> {
-    vec![OqsKexAlg::MlweKyber, OqsKexAlg::Ntru]
-}
-
-fn algos_two_newhope() -> Vec<OqsKexAlg> {
-    vec![OqsKexAlg::RlweNewhope, OqsKexAlg::RlweNewhope]
-}
-
-fn algos_three_newhope() -> Vec<OqsKexAlg> {
-    vec![
-        OqsKexAlg::RlweNewhope,
-        OqsKexAlg::RlweNewhope,
-        OqsKexAlg::RlweNewhope,
-    ]
+#[test]
+fn test_max_occurrences_constraint() {
+    test_helper(
+        ALGOS_TWO_NEWHOPE,
+        &CONSTRAINTS_SINGLE_NEWHOPE,
+        verify_kex_fails,
+    )
 }
 
 fn verify_kex_succeeds(
