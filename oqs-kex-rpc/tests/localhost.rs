@@ -8,11 +8,9 @@
 
 extern crate jsonrpc_core;
 extern crate jsonrpc_http_server;
-extern crate oqs;
 extern crate oqs_kex_rpc;
 
-use oqs::kex::{OqsKexAlg, SharedKey};
-use oqs_kex_rpc::{client, server};
+use oqs_kex_rpc::{client, server, OqsKexAlg, SharedKey};
 
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::str::FromStr;
