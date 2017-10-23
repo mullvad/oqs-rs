@@ -96,11 +96,12 @@ fn constraints_none() -> server::ServerConstraints {
 
 fn constraints_default() -> server::ServerConstraints {
     let algos = algos_default();
-    server::ServerConstraints::new(Some(&algos), Some(algos.len()), Some(1))
+    let algos_len = algos.len();
+    server::ServerConstraints::new(Some(algos), Some(algos_len), Some(1))
 }
 
 fn constraints_single_newhope_only() -> server::ServerConstraints {
-    server::ServerConstraints::new(Some(&[OqsKexAlg::RlweNewhope]), Some(1), Some(1))
+    server::ServerConstraints::new(Some(vec![OqsKexAlg::RlweNewhope]), Some(1), Some(1))
 }
 
 fn constraints_max_two_algos() -> server::ServerConstraints {

@@ -104,18 +104,41 @@ pub struct ServerConstraints {
 impl ServerConstraints {
     /// Creates a configuration with the specified constraints.
     pub fn new(
-        algorithms: Option<&[OqsKexAlg]>,
+        algorithms: Option<Vec<OqsKexAlg>>,
         max_algorithms: Option<usize>,
         max_occurrences: Option<usize>,
     ) -> Self {
         ServerConstraints {
-            algorithms: (match algorithms {
-                Some(a) => Some(a.to_vec()),
-                _ => None,
-            }),
+            algorithms,
             max_algorithms,
             max_occurrences,
         }
+    }
+
+    fn check_constraints(&self, alice_msgs: &[AliceMsg]) -> bool {
+        if self.empty() {
+            return true;
+        }
+
+        if !self.meets_max_algorithms(alice_msgs.len()) {
+            return false;
+        }
+
+        let mut alice_algos = HashMap::new();
+
+        for alice_msg in alice_msgs.iter() {
+            *alice_algos.entry(alice_msg.algorithm()).or_insert(0) += 1;
+        }
+
+        for (alice_algo, alice_algo_count) in alice_algos.iter() {
+            if !self.is_allowed_algorithm(*alice_algo)
+                || !self.meets_max_occurrences(*alice_algo_count)
+            {
+                return false;
+            }
+        }
+
+        true
     }
 
     fn empty(&self) -> bool {
@@ -141,33 +164,6 @@ impl ServerConstraints {
             Some(ref algorithms) => algorithms.contains(&algorithm),
             None => true,
         }
-    }
-
-    fn check_constraints(&self, alice_msgs: &[AliceMsg]) -> Result<()> {
-        if self.empty() {
-            return Ok(());
-        }
-
-        assert!(
-            self.meets_max_algorithms(alice_msgs.len()),
-            ErrorKind::ConstraintError
-        );
-
-        let mut alice_algos = HashMap::new();
-
-        for alice_msg in alice_msgs.iter() {
-            *alice_algos.entry(alice_msg.algorithm()).or_insert(0) += 1;
-        }
-
-        for (alice_algo, alice_algo_count) in alice_algos.iter() {
-            assert!(
-                self.is_allowed_algorithm(*alice_algo)
-                    && self.meets_max_occurrences(*alice_algo_count),
-                ErrorKind::ConstraintError
-            );
-        }
-
-        Ok(())
     }
 }
 
@@ -197,7 +193,10 @@ where
     }
 
     fn perform_exchange(&self, meta: M, alice_msgs: &[AliceMsg]) -> Result<Vec<BobMsg>> {
-        self.constraints.check_constraints(alice_msgs)?;
+        ensure!(
+            self.constraints.check_constraints(alice_msgs),
+            ErrorKind::ConstraintError
+        );
         let rand = OqsRand::new(OqsRandAlg::default()).chain_err(|| ErrorKind::OqsError)?;
         let kexs = Self::init_kex(&rand, &alice_msgs)?;
         let (bob_msgs, keys) = Self::bob(&kexs, alice_msgs)?;

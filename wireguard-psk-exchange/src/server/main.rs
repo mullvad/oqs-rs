@@ -59,7 +59,7 @@ fn main() {
     let on_kex = move |meta: KexMetadata, keys: Vec<SharedKey>| on_kex(meta, &keys, &on_kex_script);
 
     let constraints = oqs_kex_rpc::server::ServerConstraints::new(
-        Some(ALLOWED_KEX_ALGORITHMS),
+        Some(ALLOWED_KEX_ALGORITHMS.to_vec()),
         Some(ALLOWED_KEX_ALGORITHMS.len()),
         Some(1),
     );
