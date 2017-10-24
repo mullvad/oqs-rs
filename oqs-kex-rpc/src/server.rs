@@ -91,7 +91,7 @@ mod api {
 use self::api::OqsKexRpcServerApi;
 
 /// Defines a runtime configuration with constraints the server must adhere to.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct ServerConstraints {
     /// Identifiers of all algorithms to enable in the server.
     pub algorithms: Option<Vec<OqsKexAlg>>,
@@ -99,16 +99,6 @@ pub struct ServerConstraints {
     pub max_algorithms: Option<usize>,
     /// Max number of times a specific algorithm is allowed to occur in a single RPC message.
     pub max_occurrences: Option<usize>,
-}
-
-impl Clone for ServerConstraints {
-    fn clone(&self) -> ServerConstraints {
-        ServerConstraints::new(
-            self.algorithms.clone(),
-            self.max_algorithms,
-            self.max_occurrences,
-        )
-    }
 }
 
 impl ServerConstraints {
