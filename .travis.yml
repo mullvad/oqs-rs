@@ -9,11 +9,18 @@ rust:
   - beta
 os:
   - linux
+  - osx
 
 before_install:
-  - sudo add-apt-repository ppa:elt/libsodium -y
-  - sudo apt-get -qq update
-  - sudo apt-get install -y clang libsodium-dev
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      sudo add-apt-repository ppa:elt/libsodium -y;
+      sudo apt-get -qq update;
+      sudo apt-get install -y clang libsodium-dev;
+    fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      brew update;
+      brew install libsodium;
+    fi
 
 before_script:
   - ./build-liboqs.sh $HOME
@@ -22,12 +29,12 @@ before_script:
   - env
 
 script:
-  - cargo build --all
-  - cargo test --all
-  - cargo build --all --features serde
-  - cargo test --all --features serde
+  - cargo build
+  - cargo test
+  - cargo build --features serde
+  - cargo test --features serde
   - if [ "${TRAVIS_RUST_VERSION}" = "nightly" ]; then
-      cargo bench --no-run;
+      cargo build --benches --features serde;
     fi
 
 notifications:
