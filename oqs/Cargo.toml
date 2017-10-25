@@ -9,7 +9,7 @@ keywords = ["post-quantum", "rng", "kex", "liboqs", "key-exchange"]
 categories = ["algorithms", "api-bindings", "cryptography"]
 
 [dependencies]
-oqs-sys = { path = "../oqs-sys" }
+oqs-sys = { path = "../oqs-sys", version = "0.1.0" }
 libc = { version = "0.2", default-features = false }
 serde = { version = "1.0", default-features = false, optional = true, features = ["derive"] }
 
