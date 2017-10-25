@@ -45,13 +45,17 @@ error_chain! {
 
 /// Tries to start a HTTP JSON-RPC 2.0 server bound to `addr`.
 ///
-/// Will call `on_kex` after each finished negotiation and give it the resulting keys of the key
-/// exchange.
+/// Will call `on_kex` as soon as the shared keys has been computed on the server (Bob actor),
+/// but before Bob's messages are returned to the client. If this callback returns an error,
+/// then an error will be returned to the client instead of Bob's messages.
 ///
 /// `meta_extractor` should be a type that, given a HTTP request, should compute some metadata that
 /// one wants to associate with the final shared key. The `meta_extractor` will be called before
 /// any key exchange starts, and the resulting metadata will be fed to `on_kex` together with the
 /// resulting shared keys.
+///
+/// The `constraints` can be used to protect from abuse. It can limit which algorithms the server
+/// accepts and how many keys can be exchanged per request.
 pub fn start<ME, M, E, F>(
     addr: SocketAddr,
     meta_extractor: ME,
