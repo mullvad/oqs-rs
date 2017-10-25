@@ -6,8 +6,6 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-extern crate jsonrpc_core;
-extern crate jsonrpc_http_server;
 extern crate oqs_kex_rpc;
 
 #[macro_use]
@@ -150,7 +148,7 @@ fn verify_kex_fails(
     );
 }
 
-fn meta_extractor(request: &jsonrpc_http_server::hyper::Request) -> Metadata {
+fn meta_extractor(request: &oqs_kex_rpc::server::Request) -> Metadata {
     Metadata {
         remote_addr: request.remote_addr().unwrap(),
     }
@@ -169,4 +167,4 @@ impl Default for Metadata {
     }
 }
 
-impl jsonrpc_core::Metadata for Metadata {}
+impl oqs_kex_rpc::server::Metadata for Metadata {}
