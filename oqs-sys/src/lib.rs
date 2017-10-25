@@ -33,7 +33,7 @@
 //!
 //! [liboqs]: https://github.com/open-quantum-safe/liboqs
 //! [bindgen]: https://crates.io/crates/bindgen
-//! [oqs]: https://github.com/mullvad/oqs-rs
+//! [oqs]: https://crates.io/crates/oqs
 //! [`build-liboqs.sh`]: https://github.com/mullvad/oqs-rs/blob/master/build-liboqs.sh
 
 #![no_std]
@@ -44,7 +44,9 @@ extern crate libc;
 #[allow(non_camel_case_types)]
 #[allow(non_snake_case)]
 pub mod kex {
+    /// The `OQS_KEX_*` functions return this value on success.
     pub static SUCCESS: ::libc::c_int = 1;
+    /// The `OQS_KEX_*` functions return this value on failure.
     pub static FAILURE: ::libc::c_int = 0;
 
     include!(concat!(env!("OUT_DIR"), "/kex.rs"));
