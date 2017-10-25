@@ -46,6 +46,7 @@ pub enum OqsKexAlg {
     SidhCln16Compressed,
     CodeMcbits,
     Ntru,
+    /// This is a reference implementation of SIDH. Not intended for use in production.
     SidhIqcRef,
     MlweKyber,
 }
