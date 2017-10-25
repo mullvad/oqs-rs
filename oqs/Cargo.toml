@@ -5,7 +5,7 @@ authors = ["Mullvad VPN <admin@mullvad.net>", "Linus Färnstrand <faern@faern.ne
 license = "MIT/Apache-2.0"
 readme = "README.md"
 description = "Bindings for Open Quantum Safe, a library for quantum-resistant cryptographic algorithms."
-keywords = ["post-quantum", "rng", "kex", "quantum-resistant", "key-exchange"]
+keywords = ["post-quantum", "rng", "kex", "liboqs", "key-exchange"]
 categories = ["algorithms", "api-bindings", "cryptography"]
 
 [dependencies]
