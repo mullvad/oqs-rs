@@ -53,4 +53,20 @@ fn main() {
         .unwrap()
         .write_to_file(out_dir.join("rand.rs"))
         .unwrap();
+
+    let _ = bindgen::builder()
+        .header(format!(
+            "{}/oqs/common.h",
+            oqs_include_dir.to_string_lossy()
+        ))
+        .clang_arg(format!("-I{}", oqs_include_dir.to_string_lossy()))
+        .link_static("oqs")
+        .use_core()
+        .ctypes_prefix("::libc")
+        .whitelisted_var("OQS_.*")
+        .whitelisted_function("OQS_.*")
+        .generate()
+        .unwrap()
+        .write_to_file(out_dir.join("common.rs"))
+        .unwrap();
 }

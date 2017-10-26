@@ -58,3 +58,8 @@ pub mod kex {
 pub mod rand {
     include!(concat!(env!("OUT_DIR"), "/rand.rs"));
 }
+
+/// Common shared functionality and constants.
+pub mod common {
+    include!(concat!(env!("OUT_DIR"), "/common.rs"));
+}
