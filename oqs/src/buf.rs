@@ -75,11 +75,11 @@ impl Eq for Buf {}
 impl Drop for Buf {
     fn drop(&mut self) {
         if let &mut Buf::CAlloc(ref mut buf_option) = self {
+            let mut buf = buf_option.take().unwrap();
             unsafe {
-                let mut buf = buf_option.take().unwrap();
                 OQS_MEM_secure_free(buf.as_mut_ptr() as *mut libc::c_void, buf.len());
-                mem::forget(buf);
             }
+            mem::forget(buf);
         }
     }
 }
