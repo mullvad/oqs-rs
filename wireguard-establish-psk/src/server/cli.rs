@@ -9,7 +9,7 @@ pub struct Settings {
 }
 
 pub fn parse_arguments() -> Settings {
-    let app = App::new("wg-psk-exchange-server")
+    let app = App::new("wireguard-establish-psk-server")
         .version(crate_version!())
         .author(crate_authors!())
         .about(crate_description!())

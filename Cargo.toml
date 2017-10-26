@@ -3,5 +3,5 @@ members = [
     "oqs-sys",
     "oqs",
     "oqs-kex-rpc",
-    "wireguard-psk-exchange",
+    "wireguard-establish-psk",
 ]

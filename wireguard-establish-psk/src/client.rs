@@ -12,7 +12,7 @@ extern crate env_logger;
 #[macro_use]
 extern crate error_chain;
 extern crate oqs_kex_rpc;
-extern crate wireguard_psk_exchange;
+extern crate wireguard_establish_psk;
 
 use clap::Arg;
 use oqs_kex_rpc::{OqsKexAlg, SharedKey};
@@ -21,7 +21,7 @@ use oqs_kex_rpc::client::OqsKexClient;
 use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
 
-use wireguard_psk_exchange::generate_psk;
+use wireguard_establish_psk::generate_psk;
 
 error_chain! {
     links {
@@ -48,7 +48,7 @@ fn run() -> Result<()> {
 }
 
 fn parse_command_line() -> String {
-    let app = clap::App::new(crate_name!())
+    let app = clap::App::new("wireguard-establish-psk")
         .version(crate_version!())
         .author(crate_authors!())
         .about(crate_description!())
