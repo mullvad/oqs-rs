@@ -63,6 +63,7 @@ fn main() {
         .link_static("oqs")
         .use_core()
         .ctypes_prefix("::libc")
+        .whitelist_recursively(false)
         .whitelisted_var("OQS_.*")
         .whitelisted_function("OQS_.*")
         .generate()
