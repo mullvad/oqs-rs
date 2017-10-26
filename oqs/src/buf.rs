@@ -8,6 +8,7 @@
 
 use core::mem;
 use libc;
+use oqs_sys::common::OQS_MEM_secure_free;
 
 
 /// Internal binary buffer for key data and kex messages. Can hold data allocated from C or Rust,
@@ -31,8 +32,8 @@ impl Buf {
     /// Creates and returns a new `Buf` instance backed by the data at the given raw pointer.
     /// Not to be used except for wrapping data given out by `liboqs` from C.
     ///
-    /// `Buf` instances created from this method will be freed with `libc::free`, to match how they
-    /// were allocated in `liboqs`.
+    /// `Buf` instances created from this method will be freed with `OQS_MEM_secure_free`, to zero
+    /// out the memory and then free it with the same allocator as liboqs used to allocate it.
     pub fn from_c(msg: *mut u8, len: usize) -> Self {
         Buf::CAlloc(Some(
             unsafe { Vec::from_raw_parts(msg, len, len) }.into_boxed_slice(),
@@ -57,7 +58,7 @@ impl AsRef<[u8]> for Buf {
 impl Clone for Buf {
     /// Returns a new `Buf` backed by a clone of the same data as the `Buf` being cloned.
     /// Any clone is not considered as allocated from C, and will be freed in the normal Rust way
-    /// instead of by `libc::free`.
+    /// instead of by `OQS_MEM_secure_free`.
     fn clone(&self) -> Self {
         Buf::RustAlloc(self.data().to_vec().into_boxed_slice())
     }
@@ -76,7 +77,7 @@ impl Drop for Buf {
         if let &mut Buf::CAlloc(ref mut buf_option) = self {
             unsafe {
                 let mut buf = buf_option.take().unwrap();
-                libc::free(buf.as_mut_ptr() as *mut libc::c_void);
+                OQS_MEM_secure_free(buf.as_mut_ptr() as *mut libc::c_void, buf.len());
                 mem::forget(buf);
             }
         }
