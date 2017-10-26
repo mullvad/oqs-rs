@@ -76,7 +76,6 @@ impl From<OqsKexAlg> for ffi::OQS_KEX_alg_name {
 }
 
 static LWE_FRODO_PARAM: &str = "recommended\0";
-static SIDH_CLN16_COMPRESSED_PARAM: &str = "compressedp751\0";
 
 
 /// The main key exchange struct. Used by both Alice and Bob to generate their respective public
@@ -113,7 +112,6 @@ impl<'r> OqsKex<'r> {
         };
         let named_parameters = match algorithm {
             OqsKexAlg::LweFrodo { .. } => LWE_FRODO_PARAM.as_ptr(),
-            OqsKexAlg::SidhCln16Compressed => SIDH_CLN16_COMPRESSED_PARAM.as_ptr(),
             _ => ptr::null(),
         };
 
