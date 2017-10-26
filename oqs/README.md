@@ -15,7 +15,7 @@ exchanges over JSON-RPC 2.0 over HTTP.
 
 Here is a simple example how one can perform a key exchange operation. This code performs both
 the Alice and Bob roles. In a real use case Alice and Bob would be two different entities who
-want to exchange a shared key over an untrusted channel.
+want to establish a shared key over an untrusted channel.
 
 See `OqsKex` documentation for more details.
 
