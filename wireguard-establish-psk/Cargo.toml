@@ -1,9 +1,9 @@
 [package]
-name = "wireguard-psk-exchange"
+name = "wireguard-establish-psk"
 version = "0.1.0"
 authors = ["Mullvad VPN <admin@mullvad.net>", "Linus Färnstrand <faern@faern.net>", "Odd Stranne <odd@mullvad.net>"]
 license = "MIT/Apache-2.0"
-description = "Post-quantum safe client for generating PSK inside a WireGuard tunnel"
+description = "Post-quantum safe solution for establishing a PSK inside a WireGuard tunnel"
 keywords = ["post-quantum", "liboqs", "kex", "key-exchange", "wireguard"]
 categories = ["cryptography", "network-programming"]
 
@@ -17,9 +17,9 @@ clap = "2.26"
 
 
 [[bin]]
-name = "wg-psk-exchange-server"
+name = "wireguard-establish-psk-server"
 path = "src/server/main.rs"
 
 [[bin]]
-name = "wg-psk-exchange-client"
+name = "wireguard-establish-psk"
 path = "src/client.rs"
