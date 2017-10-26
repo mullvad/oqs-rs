@@ -21,6 +21,7 @@ use core::ptr;
 use std::fmt;
 
 use oqs_sys::kex as ffi;
+use oqs_sys::common::OQS_SUCCESS;
 use rand::OqsRand;
 use buf::Buf;
 
@@ -163,7 +164,7 @@ impl<'r> OqsKex<'r> {
                 &mut alice_msg_len,
             )
         };
-        if result == ffi::SUCCESS {
+        if result == OQS_SUCCESS as i32 {
             let alice_msg_buf = Buf::from_c(alice_msg_ptr, alice_msg_len);
             let alice_msg = AliceMsg::new(self.algorithm, alice_msg_buf);
             Ok(OqsKexAlice {
@@ -198,7 +199,7 @@ impl<'r> OqsKex<'r> {
                 &mut key_len,
             )
         };
-        if result == ffi::SUCCESS {
+        if result == OQS_SUCCESS as i32 {
             Ok((
                 BobMsg::new(self.algorithm, Buf::from_c(bob_msg, bob_msg_len)),
                 SharedKey::new(self.algorithm, Buf::from_c(key, key_len)),
@@ -246,7 +247,7 @@ impl<'a, 'r> OqsKexAlice<'a, 'r> {
                 &mut key_len,
             )
         };
-        if result == ffi::SUCCESS {
+        if result == OQS_SUCCESS as i32 {
             Ok(SharedKey::new(
                 self.parent.algorithm,
                 Buf::from_c(key, key_len),

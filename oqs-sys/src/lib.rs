@@ -44,11 +44,6 @@ extern crate libc;
 #[allow(non_camel_case_types)]
 #[allow(non_snake_case)]
 pub mod kex {
-    /// The `OQS_KEX_*` functions return this value on success.
-    pub static SUCCESS: ::libc::c_int = 1;
-    /// The `OQS_KEX_*` functions return this value on failure.
-    pub static FAILURE: ::libc::c_int = 0;
-
     include!(concat!(env!("OUT_DIR"), "/kex.rs"));
 }
 
@@ -57,4 +52,9 @@ pub mod kex {
 #[allow(non_snake_case)]
 pub mod rand {
     include!(concat!(env!("OUT_DIR"), "/rand.rs"));
+}
+
+/// Common shared functionality and constants.
+pub mod common {
+    include!(concat!(env!("OUT_DIR"), "/common.rs"));
 }
