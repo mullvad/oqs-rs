@@ -59,6 +59,7 @@ fn main() {
     let on_kex = move |meta: KexMetadata, keys: Vec<SharedKey>| on_kex(meta, &keys, &on_kex_script);
 
     let constraints = oqs_kex_rpc::server::ServerConstraints::new(
+        Some(5000),
         Some(ALLOWED_KEX_ALGORITHMS.to_vec()),
         Some(ALLOWED_KEX_ALGORITHMS.len()),
         Some(1),
@@ -71,9 +72,9 @@ fn main() {
 }
 
 fn on_kex(metadata: KexMetadata, keys: &[SharedKey], script: &Path) -> Result<()> {
-    let peer = metadata
-        .peer
-        .map_err(|msg| Error::from(ErrorKind::InvalidPeer(msg)))?;
+    let peer = metadata.peer.map_err(
+        |msg| Error::from(ErrorKind::InvalidPeer(msg)),
+    )?;
     let psk = generate_psk(keys);
 
     let script_result = Command::new(script).arg(&peer.public_key).arg(psk).status();
@@ -92,15 +93,13 @@ fn on_kex(metadata: KexMetadata, keys: &[SharedKey], script: &Path) -> Result<()
 /// On error a `KexMetadata` without a peer will be returned, then that will make the psk script
 /// not run.
 fn meta_extractor(request: &oqs_kex_rpc::server::Request) -> KexMetadata {
-    KexMetadata {
-        peer: request_to_peer(request),
-    }
+    KexMetadata { peer: request_to_peer(request) }
 }
 
 fn request_to_peer(request: &oqs_kex_rpc::server::Request) -> StdResult<wg::Peer, String> {
-    let tunnel_addr = request
-        .remote_addr()
-        .ok_or(String::from("No remote addr for the requesting peer"))?;
+    let tunnel_addr = request.remote_addr().ok_or(String::from(
+        "No remote addr for the requesting peer",
+    ))?;
     let peers = wg::get_peers(WG_IFACE)
         .chain_err(|| "Unable to query wg for peers")
         .map_err(|e| e.display_chain().to_string())?;
@@ -120,9 +119,7 @@ struct KexMetadata {
 
 impl Default for KexMetadata {
     fn default() -> Self {
-        KexMetadata {
-            peer: Err(String::from("meta_extractor never executed")),
-        }
+        KexMetadata { peer: Err(String::from("meta_extractor never executed")) }
     }
 }
 

@@ -20,12 +20,15 @@ use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::marker::PhantomData;
 use std::result::Result as StdResult;
+use std::ops::Deref;
 
 use jsonrpc_core::{BoxFuture, Error as JsonError, MetaIoHandler};
 use jsonrpc_http_server::ServerBuilder;
+use jsonrpc_http_server::hyper::header::ContentLength;
+use jsonrpc_http_server::hyper::error::Error::TooLarge;
 
 pub use jsonrpc_core::Metadata;
-pub use jsonrpc_http_server::{MetaExtractor, Server};
+pub use jsonrpc_http_server::{MetaExtractor, RequestMiddleware, RequestMiddlewareAction, Server};
 pub use jsonrpc_http_server::hyper::server::Request;
 
 
@@ -68,11 +71,14 @@ where
     E: ::std::error::Error + Send + 'static,
     F: Fn(M, Vec<SharedKey>) -> StdResult<(), E> + Send + Sync + 'static,
 {
+    let max_request_size = constraints.max_request_size;
+
     let server = OqsKexRpcServer::new(on_kex, constraints);
     let mut io = MetaIoHandler::default();
     io.extend_with(server.to_delegate());
 
     ServerBuilder::new(io)
+        .request_middleware(ServerConstraintsMiddleware::new(max_request_size))
         .meta_extractor(meta_extractor)
         .start_http(&addr)
         .chain_err(|| ErrorKind::RpcError)
@@ -94,9 +100,12 @@ mod api {
 }
 use self::api::OqsKexRpcServerApi;
 
+
 /// Defines a runtime configuration with constraints the server must adhere to.
 #[derive(Default, Clone)]
 pub struct ServerConstraints {
+    /// Maximum size of incoming HTTP request.
+    pub max_request_size: Option<usize>,
     /// Identifiers of all algorithms to enable in the server.
     pub algorithms: Option<Vec<OqsKexAlg>>,
     /// Max number of allowed requests in a single RPC message.
@@ -108,11 +117,13 @@ pub struct ServerConstraints {
 impl ServerConstraints {
     /// Creates a configuration with the specified constraints.
     pub fn new(
+        max_request_size: Option<usize>,
         algorithms: Option<Vec<OqsKexAlg>>,
         max_algorithms: Option<usize>,
         max_occurrences: Option<usize>,
     ) -> Self {
         ServerConstraints {
+            max_request_size,
             algorithms,
             max_algorithms,
             max_occurrences,
@@ -161,6 +172,35 @@ impl ServerConstraints {
     }
 }
 
+struct ServerConstraintsMiddleware {
+    // Max size in kilobytes
+    max_request_size: Option<usize>,
+}
+
+impl ServerConstraintsMiddleware {
+    pub fn new(max_request_size: Option<usize>) -> Self {
+        ServerConstraintsMiddleware { max_request_size }
+    }
+}
+
+impl RequestMiddleware for ServerConstraintsMiddleware {
+    fn on_request(&self, request: &Request) -> RequestMiddlewareAction {
+        if self.max_request_size.is_some() {
+            if let Some(&length) = request.headers().get::<ContentLength>() {
+                if length.deref() / 1024 > self.max_request_size.unwrap() as u64 {
+                    return RequestMiddlewareAction::Respond {
+                        should_validate_hosts: false,
+                        handler: Box::new(futures::future::err(TooLarge)),
+                    };
+                }
+            }
+        }
+
+        RequestMiddlewareAction::Proceed { should_continue_on_invalid_cors: false }
+    }
+}
+
+
 struct OqsKexRpcServer<M, E, F>
 where
     M: Metadata,
@@ -176,7 +216,10 @@ impl<M, E, F> OqsKexRpcServer<M, E, F>
 where
     M: Metadata + Sync,
     E: ::std::error::Error + Send + 'static,
-    F: Fn(M, Vec<SharedKey>) -> StdResult<(), E> + Send + Sync + 'static,
+    F: Fn(M, Vec<SharedKey>) -> StdResult<(), E>
+        + Send
+        + Sync
+        + 'static,
 {
     pub fn new(on_kex: F, constraints: ServerConstraints) -> Self {
         OqsKexRpcServer {
@@ -194,10 +237,14 @@ where
                 .collect::<Vec<OqsKexAlg>>()),
             ErrorKind::ConstraintError
         );
-        let rand = OqsRand::new(OqsRandAlg::default()).chain_err(|| ErrorKind::OqsError)?;
+        let rand = OqsRand::new(OqsRandAlg::default()).chain_err(
+            || ErrorKind::OqsError,
+        )?;
         let kexs = Self::init_kex(&rand, &alice_msgs)?;
         let (bob_msgs, keys) = Self::bob(&kexs, alice_msgs)?;
-        (self.on_kex)(meta, keys).chain_err(|| ErrorKind::CallbackError)?;
+        (self.on_kex)(meta, keys).chain_err(
+            || ErrorKind::CallbackError,
+        )?;
         Ok(bob_msgs)
     }
 
@@ -228,7 +275,10 @@ impl<M, E, F> OqsKexRpcServerApi for OqsKexRpcServer<M, E, F>
 where
     M: Metadata + Sync,
     E: ::std::error::Error + Send + 'static,
-    F: Fn(M, Vec<SharedKey>) -> StdResult<(), E> + Send + Sync + 'static,
+    F: Fn(M, Vec<SharedKey>) -> StdResult<(), E>
+        + Send
+        + Sync
+        + 'static,
 {
     type Metadata = M;
 
