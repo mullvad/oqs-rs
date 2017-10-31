@@ -197,7 +197,9 @@ impl RequestMiddleware for ServerConstraintsMiddleware {
         }
 
         if proceed {
-            return RequestMiddlewareAction::Proceed { should_continue_on_invalid_cors: false };
+            return RequestMiddlewareAction::Proceed {
+                should_continue_on_invalid_cors: false,
+            };
         }
 
         RequestMiddlewareAction::Respond {
@@ -242,14 +244,10 @@ where
                 .collect::<Vec<OqsKexAlg>>()),
             ErrorKind::ConstraintError
         );
-        let rand = OqsRand::new(OqsRandAlg::default()).chain_err(
-            || ErrorKind::OqsError,
-        )?;
+        let rand = OqsRand::new(OqsRandAlg::default()).chain_err(|| ErrorKind::OqsError)?;
         let kexs = Self::init_kex(&rand, &alice_msgs)?;
         let (bob_msgs, keys) = Self::bob(&kexs, alice_msgs)?;
-        (self.on_kex)(meta, keys).chain_err(
-            || ErrorKind::CallbackError,
-        )?;
+        (self.on_kex)(meta, keys).chain_err(|| ErrorKind::CallbackError)?;
         Ok(bob_msgs)
     }
 
