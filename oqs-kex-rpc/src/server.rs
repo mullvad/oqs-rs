@@ -24,7 +24,7 @@ use std::result::Result as StdResult;
 use jsonrpc_core::{BoxFuture, Error as JsonError, MetaIoHandler};
 use jsonrpc_http_server::ServerBuilder;
 use jsonrpc_http_server::hyper::header::ContentLength;
-use jsonrpc_http_server::hyper::error::Error::TooLarge;
+use jsonrpc_http_server::hyper::error::Error as HyperError;
 
 pub use jsonrpc_core::Metadata;
 pub use jsonrpc_http_server::{MetaExtractor, RequestMiddleware, RequestMiddlewareAction, Server};
@@ -189,7 +189,7 @@ impl RequestMiddleware for ServerConstraintsMiddleware {
                 if (*length) / 1024 > self.max_request_size.unwrap() as u64 {
                     return RequestMiddlewareAction::Respond {
                         should_validate_hosts: false,
-                        handler: Box::new(futures::future::err(TooLarge)),
+                        handler: Box::new(futures::future::err(HyperError::TooLarge)),
                     };
                 }
             }
