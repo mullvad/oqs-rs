@@ -193,7 +193,7 @@ impl RequestMiddleware for ServerConstraintsMiddleware {
                         proceed = true;
                     }
                 }
-            },
+            }
             None => proceed = true,
         }
 
@@ -224,10 +224,8 @@ impl<M, E, F> OqsKexRpcServer<M, E, F>
 where
     M: Metadata + Sync,
     E: ::std::error::Error + Send + 'static,
-    F: Fn(M, Vec<SharedKey>) -> StdResult<(), E>
-        + Send
-        + Sync
-        + 'static,
+    F: Fn(M, Vec<SharedKey>) -> StdResult<(), E>,
+    F: Send + Sync + 'static,
 {
     pub fn new(on_kex: F, constraints: ServerConstraints) -> Self {
         OqsKexRpcServer {
@@ -283,10 +281,8 @@ impl<M, E, F> OqsKexRpcServerApi for OqsKexRpcServer<M, E, F>
 where
     M: Metadata + Sync,
     E: ::std::error::Error + Send + 'static,
-    F: Fn(M, Vec<SharedKey>) -> StdResult<(), E>
-        + Send
-        + Sync
-        + 'static,
+    F: Fn(M, Vec<SharedKey>) -> StdResult<(), E>,
+    F: Send + Sync + 'static,
 {
     type Metadata = M;
 
