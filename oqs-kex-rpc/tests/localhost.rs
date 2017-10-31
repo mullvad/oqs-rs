@@ -59,9 +59,9 @@ lazy_static! {
     static ref CONSTRAINTS_MAX_TWO_ALGOS: server::ServerConstraints =
         server::ServerConstraints::new(None, None, Some(2), None);
     static ref CONSTRAINTS_REQUEST_MAX_10KB: server::ServerConstraints =
-        server::ServerConstraints::new(Some(10), None, None, None);
+        server::ServerConstraints::new(Some(1024 * 10), None, None, None);
     static ref CONSTRAINTS_REQUEST_MAX_1KB: server::ServerConstraints =
-        server::ServerConstraints::new(Some(1), None, None, None);
+        server::ServerConstraints::new(Some(1024), None, None, None);
 }
 
 static ALGOS_NONE: &[OqsKexAlg] = &[];

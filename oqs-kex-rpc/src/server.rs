@@ -172,7 +172,6 @@ impl ServerConstraints {
 }
 
 struct ServerConstraintsMiddleware {
-    // Max size in kilobytes
     max_request_size: Option<usize>,
 }
 
@@ -189,7 +188,7 @@ impl RequestMiddleware for ServerConstraintsMiddleware {
         match self.max_request_size {
             Some(max_request_size) => {
                 if let Some(&length) = request.headers().get::<ContentLength>() {
-                    if (*length) / 1024 <= max_request_size as u64 {
+                    if *length <= max_request_size as u64 {
                         proceed = true;
                     }
                 }

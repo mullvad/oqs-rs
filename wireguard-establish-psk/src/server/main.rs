@@ -35,6 +35,8 @@ static ALLOWED_KEX_ALGORITHMS: &[OqsKexAlg] = &[
     OqsKexAlg::SidhCln16,
 ];
 
+static MAX_REQUEST_SIZE: usize = 1024 * 1024 * 5;
+
 error_chain! {
     errors {
         InvalidPeer(msg: String) {
@@ -59,7 +61,7 @@ fn main() {
     let on_kex = move |meta: KexMetadata, keys: Vec<SharedKey>| on_kex(meta, &keys, &on_kex_script);
 
     let constraints = oqs_kex_rpc::server::ServerConstraints::new(
-        Some(5000),
+        Some(MAX_REQUEST_SIZE),
         Some(ALLOWED_KEX_ALGORITHMS.to_vec()),
         Some(ALLOWED_KEX_ALGORITHMS.len()),
         Some(1),
