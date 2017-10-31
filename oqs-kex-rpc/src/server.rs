@@ -20,7 +20,6 @@ use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::marker::PhantomData;
 use std::result::Result as StdResult;
-use std::ops::Deref;
 
 use jsonrpc_core::{BoxFuture, Error as JsonError, MetaIoHandler};
 use jsonrpc_http_server::ServerBuilder;
@@ -187,7 +186,7 @@ impl RequestMiddleware for ServerConstraintsMiddleware {
     fn on_request(&self, request: &Request) -> RequestMiddlewareAction {
         if self.max_request_size.is_some() {
             if let Some(&length) = request.headers().get::<ContentLength>() {
-                if length.deref() / 1024 > self.max_request_size.unwrap() as u64 {
+                if (*length) / 1024 > self.max_request_size.unwrap() as u64 {
                     return RequestMiddlewareAction::Respond {
                         should_validate_hosts: false,
                         handler: Box::new(futures::future::err(TooLarge)),
