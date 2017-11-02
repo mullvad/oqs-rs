@@ -54,9 +54,12 @@ fn main() {
     let on_kex_script = settings.on_kex_script;
     let on_kex = move |meta: KexMetadata, keys: Vec<SharedKey>| on_kex(meta, &keys, &on_kex_script);
 
-    let server =
-        oqs_kex_rpc::server::start(settings.listen_addr, meta_extractor, on_kex, settings.constraints)
-            .expect("Unable to start server");
+    let server = oqs_kex_rpc::server::start(
+        settings.listen_addr,
+        meta_extractor,
+        on_kex,
+        settings.constraints,
+    ).expect("Unable to start server");
     server.wait();
 }
 

@@ -3,6 +3,7 @@ use clap::{App, Arg, ArgMatches};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::net::SocketAddr;
+use std::str::FromStr;
 
 use oqs_kex_rpc::OqsKexAlg;
 use oqs_kex_rpc::server::ServerConstraints;
@@ -35,7 +36,10 @@ pub fn parse_arguments() -> Settings {
         .collect::<Vec<&str>>()
         .join(", ");
 
-    let algorithms_help_msg = format!("Specifies one or more algorithms to enable: {}", algorithms_list);
+    let algorithms_help_msg = format!(
+        "Specifies one or more algorithms to enable: {}",
+        algorithms_list
+    );
 
     let app = App::new("wireguard-establish-psk-server")
         .version(crate_version!())
@@ -93,21 +97,15 @@ pub fn parse_arguments() -> Settings {
     let address = value_t!(matches.value_of("address"), SocketAddr).unwrap_or_else(|e| e.exit());
     let script = matches.value_of("script").unwrap();
 
-    let algorithms: Option<Vec<OqsKexAlg>> = match matches.values_of("algorithms") {
-        Some(algs) => Some(algs.map(|a| *ALGORITHMS.get(a).unwrap()).collect()),
-        None => None,
-    };
+    let algorithms: Option<Vec<OqsKexAlg>> = matches.values_of("algorithms").map(|algs| {
+        algs.map(|alg| *ALGORITHMS.get(alg).unwrap()).collect()
+    });
 
     let max_size = optional_usize(&matches, "request_max_size");
     let max_algos = optional_usize(&matches, "request_max_algorithms");
     let max_algo_occurrences = optional_usize(&matches, "request_max_algorithm_occurrences");
 
-    let constraints = ServerConstraints::new(
-        max_size,
-        algorithms,
-        max_algos,
-        max_algo_occurrences,
-    );
+    let constraints = ServerConstraints::new(max_size, algorithms, max_algos, max_algo_occurrences);
 
     Settings {
         listen_addr: address,
@@ -117,18 +115,21 @@ pub fn parse_arguments() -> Settings {
 }
 
 fn validate_usize(v: String) -> Result<(), String> {
-    if v.parse::<usize>().is_ok() { return Ok(()); }
+    if v.parse::<usize>().is_ok() {
+        return Ok(());
+    }
     Err(String::from("Not a valid number"))
 }
 
 fn validate_algorithm(v: String) -> Result<(), String> {
-    if ALGORITHMS.contains_key::<str>(&v) { return Ok(()); }
+    if ALGORITHMS.contains_key::<str>(&v) {
+        return Ok(());
+    }
     Err(String::from("Not a valid algorithm name"))
 }
 
 fn optional_usize(matches: &ArgMatches, name: &str) -> Option<usize> {
-    if let Some(n) = matches.value_of(name) {
-        return Some(n.parse::<usize>().unwrap());
-    }
-    None
+    matches
+        .value_of(name)
+        .map(|val| usize::from_str(val).unwrap())
 }
