@@ -11,6 +11,8 @@ extern crate clap;
 extern crate env_logger;
 #[macro_use]
 extern crate error_chain;
+#[macro_use]
+extern crate lazy_static;
 extern crate oqs_kex_rpc;
 extern crate wireguard_establish_psk;
 
