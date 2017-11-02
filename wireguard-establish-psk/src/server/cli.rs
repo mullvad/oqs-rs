@@ -98,15 +98,15 @@ pub fn parse_arguments() -> Settings {
         None => None,
     };
 
-    let _max_size = optional_usize(&matches, "request_max_size");
+    let max_size = optional_usize(&matches, "request_max_size");
     let max_algos = optional_usize(&matches, "request_max_algorithms");
     let max_algo_occurrences = optional_usize(&matches, "request_max_algorithm_occurrences");
 
-    // TODO fix 4th field after merge
     let constraints = ServerConstraints::new(
-            algorithms,
-            max_algos,
-            max_algo_occurrences,
+        max_size,
+        algorithms,
+        max_algos,
+        max_algo_occurrences,
     );
 
     Settings {
