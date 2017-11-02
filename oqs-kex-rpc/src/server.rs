@@ -23,9 +23,11 @@ use std::result::Result as StdResult;
 
 use jsonrpc_core::{BoxFuture, Error as JsonError, MetaIoHandler};
 use jsonrpc_http_server::ServerBuilder;
+use jsonrpc_http_server::hyper::header::ContentLength;
+use jsonrpc_http_server::hyper::error::Error as HyperError;
 
 pub use jsonrpc_core::Metadata;
-pub use jsonrpc_http_server::{MetaExtractor, Server};
+pub use jsonrpc_http_server::{MetaExtractor, RequestMiddleware, RequestMiddlewareAction, Server};
 pub use jsonrpc_http_server::hyper::server::Request;
 
 
@@ -68,11 +70,14 @@ where
     E: ::std::error::Error + Send + 'static,
     F: Fn(M, Vec<SharedKey>) -> StdResult<(), E> + Send + Sync + 'static,
 {
+    let max_request_size = constraints.max_request_size;
+
     let server = OqsKexRpcServer::new(on_kex, constraints);
     let mut io = MetaIoHandler::default();
     io.extend_with(server.to_delegate());
 
     ServerBuilder::new(io)
+        .request_middleware(ServerConstraintsMiddleware::new(max_request_size))
         .meta_extractor(meta_extractor)
         .start_http(&addr)
         .chain_err(|| ErrorKind::RpcError)
@@ -94,9 +99,12 @@ mod api {
 }
 use self::api::OqsKexRpcServerApi;
 
+
 /// Defines a runtime configuration with constraints the server must adhere to.
 #[derive(Default, Clone)]
 pub struct ServerConstraints {
+    /// Maximum size of incoming HTTP request.
+    pub max_request_size: Option<usize>,
     /// Identifiers of all algorithms to enable in the server.
     pub algorithms: Option<Vec<OqsKexAlg>>,
     /// Max number of allowed requests in a single RPC message.
@@ -108,11 +116,13 @@ pub struct ServerConstraints {
 impl ServerConstraints {
     /// Creates a configuration with the specified constraints.
     pub fn new(
+        max_request_size: Option<usize>,
         algorithms: Option<Vec<OqsKexAlg>>,
         max_algorithms: Option<usize>,
         max_occurrences: Option<usize>,
     ) -> Self {
         ServerConstraints {
+            max_request_size,
             algorithms,
             max_algorithms,
             max_occurrences,
@@ -161,6 +171,46 @@ impl ServerConstraints {
     }
 }
 
+struct ServerConstraintsMiddleware {
+    max_request_size: Option<usize>,
+}
+
+impl ServerConstraintsMiddleware {
+    pub fn new(max_request_size: Option<usize>) -> Self {
+        ServerConstraintsMiddleware { max_request_size }
+    }
+}
+
+impl RequestMiddleware for ServerConstraintsMiddleware {
+    fn on_request(&self, request: &Request) -> RequestMiddlewareAction {
+        let proceed = RequestMiddlewareAction::Proceed {
+            should_continue_on_invalid_cors: false,
+        };
+        match self.max_request_size {
+            Some(max_request_size) => {
+                if let Some(&length) = request.headers().get::<ContentLength>() {
+                    if *length <= max_request_size as u64 {
+                        proceed
+                    } else {
+                        RequestMiddlewareAction::Respond {
+                            should_validate_hosts: false,
+                            handler: Box::new(futures::future::err(HyperError::TooLarge)),
+                        }
+                    }
+                } else {
+                    // Invalid header
+                    RequestMiddlewareAction::Respond {
+                        should_validate_hosts: false,
+                        handler: Box::new(futures::future::err(HyperError::Header)),
+                    }
+                }
+            }
+            None => proceed,
+        }
+    }
+}
+
+
 struct OqsKexRpcServer<M, E, F>
 where
     M: Metadata,
@@ -176,7 +226,8 @@ impl<M, E, F> OqsKexRpcServer<M, E, F>
 where
     M: Metadata + Sync,
     E: ::std::error::Error + Send + 'static,
-    F: Fn(M, Vec<SharedKey>) -> StdResult<(), E> + Send + Sync + 'static,
+    F: Fn(M, Vec<SharedKey>) -> StdResult<(), E>,
+    F: Send + Sync + 'static,
 {
     pub fn new(on_kex: F, constraints: ServerConstraints) -> Self {
         OqsKexRpcServer {
@@ -228,7 +279,8 @@ impl<M, E, F> OqsKexRpcServerApi for OqsKexRpcServer<M, E, F>
 where
     M: Metadata + Sync,
     E: ::std::error::Error + Send + 'static,
-    F: Fn(M, Vec<SharedKey>) -> StdResult<(), E> + Send + Sync + 'static,
+    F: Fn(M, Vec<SharedKey>) -> StdResult<(), E>,
+    F: Send + Sync + 'static,
 {
     type Metadata = M;
 
