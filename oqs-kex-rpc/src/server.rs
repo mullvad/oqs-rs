@@ -183,28 +183,29 @@ impl ServerConstraintsMiddleware {
 
 impl RequestMiddleware for ServerConstraintsMiddleware {
     fn on_request(&self, request: &Request) -> RequestMiddlewareAction {
-        let mut proceed = false;
-
+        let proceed = RequestMiddlewareAction::Proceed {
+            should_continue_on_invalid_cors: false,
+        };
         match self.max_request_size {
             Some(max_request_size) => {
                 if let Some(&length) = request.headers().get::<ContentLength>() {
                     if *length <= max_request_size as u64 {
-                        proceed = true;
+                        proceed
+                    } else {
+                        RequestMiddlewareAction::Respond {
+                            should_validate_hosts: false,
+                            handler: Box::new(futures::future::err(HyperError::TooLarge)),
+                        }
+                    }
+                } else {
+                    // Invalid header
+                    RequestMiddlewareAction::Respond {
+                        should_validate_hosts: false,
+                        handler: Box::new(futures::future::err(HyperError::Header)),
                     }
                 }
             }
-            None => proceed = true,
-        }
-
-        if proceed {
-            return RequestMiddlewareAction::Proceed {
-                should_continue_on_invalid_cors: false,
-            };
-        }
-
-        RequestMiddlewareAction::Respond {
-            should_validate_hosts: false,
-            handler: Box::new(futures::future::err(HyperError::TooLarge)),
+            None => proceed,
         }
     }
 }
