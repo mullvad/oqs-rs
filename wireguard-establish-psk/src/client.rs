@@ -18,9 +18,6 @@ use clap::Arg;
 use oqs_kex_rpc::{OqsKexAlg, SharedKey};
 use oqs_kex_rpc::client::OqsKexClient;
 
-use std::net::{IpAddr, SocketAddr};
-use std::str::FromStr;
-
 use wireguard_establish_psk::generate_psk;
 
 error_chain! {
@@ -34,11 +31,7 @@ quick_main!(run);
 fn run() -> Result<()> {
     env_logger::init().unwrap();
     let server_uri = parse_command_line();
-    let algs = [
-        OqsKexAlg::RlweNewhope,
-        OqsKexAlg::CodeMcbits,
-        OqsKexAlg::SidhCln16,
-    ];
+    let algs = [OqsKexAlg::RlweNewhope];
 
     let keys = establish_quantum_safe_keys(&server_uri, &algs)?;
     let psk = generate_psk(&keys);
@@ -54,37 +47,25 @@ fn parse_command_line() -> String {
         .about(crate_description!())
         .arg(
             Arg::with_name("server")
-                .short("s")
-                .long("server")
                 .value_name("SERVER")
                 .help("Specifies the Wireguard server to connect to")
-                .takes_value(true)
+                .index(1)
                 .required(true),
         )
         .arg(
             Arg::with_name("port")
-                .short("p")
-                .long("port")
                 .value_name("PORT")
                 .help("Specifies the port to connect to")
-                .takes_value(true)
+                .index(2)
                 .required(true),
         );
 
-    let app_matches = app.get_matches();
+    let matches = app.get_matches();
 
-    let server = app_matches.value_of("server").unwrap();
-    let port = value_t!(app_matches.value_of("port"), u16).unwrap_or_else(|e| e.exit());
+    let server = matches.value_of("server").unwrap();
+    let port = value_t!(matches.value_of("port"), u16).unwrap_or_else(|e| e.exit());
 
-    format_server_uri(server, port)
-}
-
-fn format_server_uri(server: &str, port: u16) -> String {
-    let addr_port = match IpAddr::from_str(server) {
-        Ok(ip) => format!("{}", SocketAddr::new(ip, port)),
-        Err(_) => format!("{}:{}", server, port),
-    };
-    format!("http://{}", addr_port)
+    format!("http://{}:{}", server, port)
 }
 
 fn establish_quantum_safe_keys(
