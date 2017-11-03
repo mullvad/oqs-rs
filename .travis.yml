@@ -2,7 +2,7 @@ language: rust
 cache:
   cargo: true
   directories:
-    - $HOME/liboqs
+    - oqs-sys/liboqs
 rust:
   - nightly
   - stable
@@ -23,8 +23,10 @@ before_install:
     fi
 
 before_script:
-  - ./build-liboqs.sh $HOME
-  - export OQS_DIR=$HOME/liboqs
+  - cd oqs-sys
+  - ./build-liboqs.sh
+  - cd ..
+  - export OQS_DIR=$PWD/oqs-sys/liboqs
   - export PATH=$HOME/.cargo/bin:$HOME/.local/bin:$PATH
   - env
 
