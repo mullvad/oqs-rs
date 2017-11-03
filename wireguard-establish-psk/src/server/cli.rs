@@ -29,17 +29,6 @@ lazy_static! {
 }
 
 pub fn parse_arguments() -> Settings {
-    let algorithms_list = ALGORITHMS
-        .keys()
-        .map(|k| *k)
-        .collect::<Vec<&str>>()
-        .join(", ");
-
-    let algorithms_help_msg = format!(
-        "Specifies one or more algorithms to enable: {}",
-        algorithms_list
-    );
-
     let app = App::new("wireguard-establish-psk-server")
         .version(crate_version!())
         .author(crate_authors!())
@@ -82,11 +71,11 @@ pub fn parse_arguments() -> Settings {
         .arg(
             Arg::with_name("algorithms")
                 .value_name("ALGORITHM")
-                .help(&algorithms_help_msg)
+                .help("Specifies one or more algorithms to enable")
                 .long("algorithms")
                 .takes_value(true)
-                .multiple(true)
-                .validator(|a| validate_algorithm(a)),
+                .possible_values(&ALGORITHMS.keys().map(|algo| *algo).collect::<Vec<&str>>())
+                .multiple(true),
         );
 
     let matches = app.get_matches();
@@ -108,13 +97,6 @@ pub fn parse_arguments() -> Settings {
         on_kex_script: PathBuf::from(script),
         constraints,
     }
-}
-
-fn validate_algorithm(v: String) -> Result<(), String> {
-    if ALGORITHMS.contains_key::<str>(&v) {
-        return Ok(());
-    }
-    Err(String::from("Not a valid algorithm name"))
 }
 
 fn optional_usize(matches: &ArgMatches, name: &str) -> Option<usize> {
