@@ -1,6 +1,6 @@
-#! /usr/bin/env bash
+#!/usr/bin/env bash
 
-set -ex
+set -e
 
 if [ -e liboqs/liboqs.a ]; then
     echo "Found existing liboqs/liboqs.a, not installing"
@@ -9,31 +9,36 @@ fi
 
 cd liboqs
 
-EXTRA_ARGS=()
+# Enabled algorithms for liboqs
+enabled_algorithms=(
+    --enable-aes-ni
+    --enable-kex-lwe-frodo
+    --enable-kex-mlwe-kyber
+    --enable-kex-ntru
+    --enable-kex-rlwe-msrln16
+    --enable-kex-rlwe-newhope
+    --enable-kex-sidh-cln16
+)
 
-if [ -n "$OQS_WITH_SODIUM" ]; then
+if [[ $OQS_WITH_SODIUM -eq 1 ]]; then
     echo "Building with libsodium"
-    EXTRA_ARGS+=" --enable-kex-code-mcbits"
+    enabled_algorithms+=(
+        --enable-kex-code-mcbits
+    )
 fi
 
-if [ -n "$OQS_WITH_GMP" ]; then
+if [[ $OQS_WITH_GMP -eq 1 ]]; then
     echo "Building with libgmp"
-    EXTRA_ARGS+=" --enable-sidhiqc"
+    enabled_algorithms+=(
+        --enable-sidhiqc
+    )
 fi
 
 autoreconf -i
 
-# Building with -fPIC is needed for linking with RUST
+# Building with -fPIC is needed for linking with Rust
 
-./configure AM_CPPFLAGS="-fPIC" \
-    --enable-aes-ni \
-    --enable-kex-lwe-frodo \
-    --enable-kex-mlwe-kyber \
-    --enable-kex-ntru \
-    --enable-kex-rlwe-msrln16 \
-    --enable-kex-rlwe-newhope \
-    --enable-kex-sidh-cln16 \
-    $EXTRA_ARGS
+./configure AM_CPPFLAGS="-fPIC" "${enabled_algorithms[@]}"
 
 make clean
 make
