@@ -14,12 +14,11 @@ extern crate error_chain;
 extern crate oqs_kex_rpc;
 extern crate wireguard_establish_psk;
 
+use std::str::FromStr;
+
 use clap::Arg;
 use oqs_kex_rpc::{OqsKexAlg, SharedKey};
 use oqs_kex_rpc::client::OqsKexClient;
-
-use std::net::{IpAddr, SocketAddr};
-use std::str::FromStr;
 
 use wireguard_establish_psk::generate_psk;
 
@@ -54,37 +53,25 @@ fn parse_command_line() -> String {
         .about(crate_description!())
         .arg(
             Arg::with_name("server")
-                .short("s")
-                .long("server")
                 .value_name("SERVER")
-                .help("Specifies the Wireguard server to connect to")
-                .takes_value(true)
-                .required(true),
-        )
-        .arg(
-            Arg::with_name("port")
-                .short("p")
-                .long("port")
-                .value_name("PORT")
-                .help("Specifies the port to connect to")
-                .takes_value(true)
+                .help("Specifies the Wireguard server to connect to (eg. 1.2.3.4:5678)")
+                .validator(|s| validate_server(&s))
+                .index(1)
                 .required(true),
         );
 
-    let app_matches = app.get_matches();
-
-    let server = app_matches.value_of("server").unwrap();
-    let port = value_t!(app_matches.value_of("port"), u16).unwrap_or_else(|e| e.exit());
-
-    format_server_uri(server, port)
+    format!("http://{}", app.get_matches().value_of("server").unwrap())
 }
 
-fn format_server_uri(server: &str, port: u16) -> String {
-    let addr_port = match IpAddr::from_str(server) {
-        Ok(ip) => format!("{}", SocketAddr::new(ip, port)),
-        Err(_) => format!("{}:{}", server, port),
-    };
-    format!("http://{}", addr_port)
+fn validate_server(server: &str) -> std::result::Result<(), String> {
+    if let Some(index) = server.rfind(':') {
+        return match server.get(index + 1..).and_then(|port| usize::from_str(port).ok()) {
+            Some(_port) => Ok(()),
+            _ => Err(String::from("Invalid port number")),
+        };
+    }
+
+    Err(String::from("Invalid server format"))
 }
 
 fn establish_quantum_safe_keys(
