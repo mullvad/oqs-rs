@@ -21,8 +21,8 @@ cargo build
 
 ## Building liboqs
 
-See [`build-liboqs.sh`] in the repository root for instructions on building [liboqs] with all
-crypto algorithms enabled. See the [liboqs] README for more detailed instructions.
+See [`build-liboqs.sh`] in this folder for instructions on building [liboqs].
+See the [liboqs] README for more detailed instructions.
 
 
 [liboqs]: https://github.com/open-quantum-safe/liboqs
