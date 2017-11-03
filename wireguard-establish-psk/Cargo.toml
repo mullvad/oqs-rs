@@ -14,7 +14,7 @@ oqs-kex-rpc = { path = "../oqs-kex-rpc" }
 base64 = "0.7"
 sha2 = "0.6"
 clap = "2.26"
-
+lazy_static = "0.2"
 
 [[bin]]
 name = "wireguard-establish-psk-server"
