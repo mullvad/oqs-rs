@@ -33,9 +33,7 @@ quick_main!(run);
 fn run() -> Result<()> {
     env_logger::init().unwrap();
     let server_uri = parse_command_line();
-    let algs = [
-        OqsKexAlg::RlweNewhope,
-    ];
+    let algs = [OqsKexAlg::RlweNewhope];
 
     let keys = establish_quantum_safe_keys(&server_uri, &algs)?;
     let psk = generate_psk(&keys);
@@ -63,7 +61,10 @@ fn parse_command_line() -> String {
 
 fn validate_server(server: &str) -> std::result::Result<(), String> {
     if let Some(index) = server.rfind(':') {
-        return match server.get(index + 1..).and_then(|port| usize::from_str(port).ok()) {
+        return match server
+            .get(index + 1..)
+            .and_then(|port| usize::from_str(port).ok())
+        {
             Some(_port) => Ok(()),
             _ => Err(String::from("Invalid port number")),
         };
