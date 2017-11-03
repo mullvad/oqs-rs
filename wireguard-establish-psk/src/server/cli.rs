@@ -3,7 +3,6 @@ use clap::{App, Arg, ArgMatches};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::net::SocketAddr;
-use std::str::FromStr;
 
 use oqs_kex_rpc::OqsKexAlg;
 use oqs_kex_rpc::server::ServerConstraints;
@@ -64,24 +63,21 @@ pub fn parse_arguments() -> Settings {
                 .value_name("SIZE")
                 .help("Max size in bytes of incoming request")
                 .long("request-max-size")
-                .takes_value(true)
-                .validator(|n| validate_usize(n)),
+                .takes_value(true),
         )
         .arg(
             Arg::with_name("request_max_algorithms")
                 .value_name("COUNT")
                 .help("Max number of key exchanges per request")
                 .long("request-max-algorithms")
-                .takes_value(true)
-                .validator(|n| validate_usize(n)),
+                .takes_value(true),
         )
         .arg(
             Arg::with_name("request_max_algorithm_occurrences")
                 .value_name("COUNT")
                 .help("Max number of times a single algorithm may occur per request")
                 .long("request-max-alg-occurrences")
-                .takes_value(true)
-                .validator(|n| validate_usize(n)),
+                .takes_value(true),
         )
         .arg(
             Arg::with_name("algorithms")
@@ -114,13 +110,6 @@ pub fn parse_arguments() -> Settings {
     }
 }
 
-fn validate_usize(v: String) -> Result<(), String> {
-    if v.parse::<usize>().is_ok() {
-        return Ok(());
-    }
-    Err(String::from("Not a valid number"))
-}
-
 fn validate_algorithm(v: String) -> Result<(), String> {
     if ALGORITHMS.contains_key::<str>(&v) {
         return Ok(());
@@ -129,7 +118,9 @@ fn validate_algorithm(v: String) -> Result<(), String> {
 }
 
 fn optional_usize(matches: &ArgMatches, name: &str) -> Option<usize> {
-    matches
-        .value_of(name)
-        .map(|val| usize::from_str(val).unwrap())
+    if matches.is_present(name) {
+        Some(value_t!(matches.value_of(name), usize).unwrap_or_else(|e| e.exit()))
+    } else {
+        None
+    }
 }
