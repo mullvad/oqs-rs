@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-set -e
+set -ex
 
 if [ -e liboqs/liboqs.a ]; then
     echo "Found existing liboqs/liboqs.a, not installing"
