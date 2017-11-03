@@ -9,20 +9,21 @@ fi
 
 cd liboqs
 
-autoreconf -i
-
-# Building with -fPIC is needed for linking with RUST
-
 EXTRA_ARGS=()
 
 if [ -n "$OQS_WITH_SODIUM" ]; then
+    echo "Building with libsodium"
     EXTRA_ARGS+=" --enable-kex-code-mcbits"
 fi
 
-if [ -n "$OQS_WITH_GMP" ]; then \
+if [ -n "$OQS_WITH_GMP" ]; then
+    echo "Building with libgmp"
     EXTRA_ARGS+=" --enable-sidhiqc"
 fi
 
+autoreconf -i
+
+# Building with -fPIC is needed for linking with RUST
 
 ./configure AM_CPPFLAGS="-fPIC" \
     --enable-aes-ni \
