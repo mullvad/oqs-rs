@@ -21,11 +21,11 @@ fn main() {
 
     println!("cargo:rustc-link-lib=oqs");
 
-    if env::var("OQS_WITH_SODIUM").is_ok() {
+    if option_env!("OQS_WITH_SODIUM") == Some("1") {
         println!("cargo:rustc-link-lib=sodium");
     }
 
-    if env::var("OQS_WITH_GMP").is_ok() {
+    if option_env!("OQS_WITH_GMP") == Some("1")  {
         println!("cargo:rustc-link-lib=gmp");
     }
 
