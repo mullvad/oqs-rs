@@ -27,6 +27,7 @@ before_script:
   - ./build-liboqs.sh
   - cd ..
   - export OQS_DIR=$PWD/oqs-sys/liboqs
+  - export OQS_WITH_SODIUM=1
   - export PATH=$HOME/.cargo/bin:$HOME/.local/bin:$PATH
   - env
 
