@@ -35,8 +35,6 @@ fn run() -> Result<()> {
     let server_uri = parse_command_line();
     let algs = [
         OqsKexAlg::RlweNewhope,
-        OqsKexAlg::CodeMcbits,
-        OqsKexAlg::SidhCln16,
     ];
 
     let keys = establish_quantum_safe_keys(&server_uri, &algs)?;
