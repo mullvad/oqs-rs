@@ -14,8 +14,6 @@ extern crate error_chain;
 extern crate oqs_kex_rpc;
 extern crate wireguard_establish_psk;
 
-use std::str::FromStr;
-
 use clap::Arg;
 use oqs_kex_rpc::{OqsKexAlg, SharedKey};
 use oqs_kex_rpc::client::OqsKexClient;
@@ -50,27 +48,24 @@ fn parse_command_line() -> String {
         .arg(
             Arg::with_name("server")
                 .value_name("SERVER")
-                .help("Specifies the Wireguard server to connect to (eg. 1.2.3.4:5678)")
-                .validator(|s| validate_server(&s))
+                .help("Specifies the Wireguard server to connect to")
                 .index(1)
+                .required(true),
+        )
+        .arg(
+            Arg::with_name("port")
+                .value_name("PORT")
+                .help("Specifies the port to connect to")
+                .index(2)
                 .required(true),
         );
 
-    format!("http://{}", app.get_matches().value_of("server").unwrap())
-}
+    let matches = app.get_matches();
 
-fn validate_server(server: &str) -> std::result::Result<(), String> {
-    if let Some(index) = server.rfind(':') {
-        return match server
-            .get(index + 1..)
-            .and_then(|port| usize::from_str(port).ok())
-        {
-            Some(_port) => Ok(()),
-            _ => Err(String::from("Invalid port number")),
-        };
-    }
+    let server = matches.value_of("server").unwrap();
+    let port = value_t!(matches.value_of("port"), u16).unwrap_or_else(|e| e.exit());
 
-    Err(String::from("Invalid server format"))
+    format!("http://{}:{}", server, port)
 }
 
 fn establish_quantum_safe_keys(

@@ -2,7 +2,7 @@ use clap::{App, Arg, ArgMatches};
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::net::SocketAddr;
+use std::net::{IpAddr, SocketAddr};
 
 use oqs_kex_rpc::OqsKexAlg;
 use oqs_kex_rpc::server::ServerConstraints;
@@ -36,15 +36,22 @@ pub fn parse_arguments() -> Settings {
         .arg(
             Arg::with_name("address")
                 .value_name("LISTEN ADDR")
-                .help("Specifies the IP and port to listen on (eg. 0.0.0.0:9876)")
+                .help("Specifies the IP to listen on")
                 .index(1)
+                .required(true),
+        )
+        .arg(
+            Arg::with_name("port")
+                .value_name("PORT")
+                .help("Specifies the port to listen on")
+                .index(2)
                 .required(true),
         )
         .arg(
             Arg::with_name("script")
                 .value_name("SCRIPT")
                 .help("Path to the script to run on each successful key exchange")
-                .index(2)
+                .index(3)
                 .required(true),
         )
         .arg(
@@ -79,7 +86,8 @@ pub fn parse_arguments() -> Settings {
         );
 
     let matches = app.get_matches();
-    let address = value_t!(matches.value_of("address"), SocketAddr).unwrap_or_else(|e| e.exit());
+    let address = value_t!(matches.value_of("address"), IpAddr).unwrap_or_else(|e| e.exit());
+    let port = value_t!(matches.value_of("port"), u16).unwrap_or_else(|e| e.exit());
     let script = matches.value_of("script").unwrap();
 
     let algorithms: Option<Vec<OqsKexAlg>> = matches.values_of("algorithms").map(|algs| {
@@ -93,7 +101,7 @@ pub fn parse_arguments() -> Settings {
     let constraints = ServerConstraints::new(max_size, algorithms, max_algos, max_algo_occurrences);
 
     Settings {
-        listen_addr: address,
+        listen_addr: SocketAddr::new(address, port),
         on_kex_script: PathBuf::from(script),
         constraints,
     }
