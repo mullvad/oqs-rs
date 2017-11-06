@@ -21,3 +21,9 @@ of the crates should be fairly straight forward, check out their respective docu
 [`oqs`]: oqs/
 [`oqs-kex-rpc`]: oqs-kex-rpc/
 [`wireguard-psk-exchange`]: wireguard-psk-exchange/
+
+## Building statically linked binaries
+
+In order to build statically linked binaries, a musl toolchain and openssl built for musl is needed.
+A script is provided in the root folder of this repo to help with this: [`build-static.sh`].
+Run it in order to install needed dependencies and producing statically linked binaries.
