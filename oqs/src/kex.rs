@@ -427,7 +427,7 @@ mod tests {
     );
     test_full_kex!(full_kex_code_mcbits, OqsKexAlg::CodeMcbits);
     test_full_kex!(full_kex_ntrl, OqsKexAlg::Ntru);
-    // test_full_kex!(full_kex_sidh_iqc_ref, OqsKexAlg::SidhIqcRef);
+    test_full_kex!(full_kex_sidh_iqc_ref, OqsKexAlg::SidhIqcRef);
     test_full_kex!(full_kex_mlwe_kyber, OqsKexAlg::MlweKyber);
 
     fn helper_bob(alice_msg: &AliceMsg) -> (BobMsg, SharedKey) {

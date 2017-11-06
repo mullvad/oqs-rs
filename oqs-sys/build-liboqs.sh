@@ -25,7 +25,7 @@ fi
 if [[ $OQS_WITH_GMP -eq 1 ]]; then
     echo "Building with libgmp"
     enabled_algorithms+=(
-        --enable-sidhiqc
+        --enable-kex-sidh-iqc-ref
     )
 fi
 
