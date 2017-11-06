@@ -1,8 +1,6 @@
 language: rust
 cache:
   cargo: true
-  directories:
-    - oqs-sys/liboqs
 rust:
   - nightly
   - stable
