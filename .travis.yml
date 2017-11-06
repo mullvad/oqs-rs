@@ -15,16 +15,18 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       sudo add-apt-repository ppa:elt/libsodium -y;
       sudo apt-get -qq update;
-      sudo apt-get install -y clang libsodium-dev;
+      sudo apt-get install -y clang libsodium-dev libgmp-dev;
     fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       brew update;
       brew install libsodium;
+      brew install gmp;
     fi
 
 before_script:
   - cd oqs-sys
   - export OQS_WITH_SODIUM=1
+  - export OQS_WITH_GMP=1
   - ./build-liboqs.sh
   - cd ..
   - export OQS_DIR=$PWD/oqs-sys/liboqs
