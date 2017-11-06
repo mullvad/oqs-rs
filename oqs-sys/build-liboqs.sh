@@ -2,11 +2,6 @@
 
 set -e
 
-if [ -e liboqs/liboqs.a ]; then
-    echo "Found existing liboqs/liboqs.a, not installing"
-    exit 0
-fi
-
 cd liboqs
 
 # Enabled algorithms for liboqs
