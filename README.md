@@ -20,4 +20,4 @@ of the crates should be fairly straight forward, check out their respective docu
 [oqs-sys README]: oqs-sys/README.md
 [`oqs`]: oqs/
 [`oqs-kex-rpc`]: oqs-kex-rpc/
-[`wireguard-psk-exchange`]: wireguard-psk-exchange/
+[`wireguard-establish-psk`]: wireguard-establish-psk/
