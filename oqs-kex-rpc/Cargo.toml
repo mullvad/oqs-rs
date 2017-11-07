@@ -12,7 +12,7 @@ categories = ["cryptography", "network-programming", "web-programming::http-clie
 error-chain = "0.11"
 oqs = { path = "../oqs", version = "0.1.0", features = ["serde"] }
 jsonrpc-client-core = "0.2"
-jsonrpc-client-http = "0.2"
+jsonrpc-client-http = { version = "0.2", default-features = false }
 jsonrpc-core = "7.1.1"
 jsonrpc-macros = "7.1.1"
 jsonrpc-http-server = "7.1.1"
