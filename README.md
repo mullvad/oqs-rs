@@ -4,7 +4,7 @@ This repository contains the following crates:
 * [`oqs-sys`] - Low level FFI bindings for [`liboqs`].
 * [`oqs`] - Higher level Rust representations.
 * [`oqs-kex-rpc`] - JSON-RPC 2.0 server and client for key exchange via [`oqs`].
-* [`wireguard-psk-exchange`] - Server and client programs for negotiating a wireguard compatible
+* [`wireguard-establish-psk`] - Server and client programs for negotiating a wireguard compatible
   pre-shared key over a wireguard tunnel. This key can later be used to upgrade the tunnel to be
   post-quantum safe.
 
