@@ -21,13 +21,13 @@ cargo build
 
 ## Building liboqs
 
-See [`build-liboqs.sh`] in the repository root for instructions on building [liboqs] with all
-crypto algorithms enabled. See the [liboqs] README for more detailed instructions.
+See [`build-liboqs.sh`] in this folder for instructions on building [liboqs].
+See the [liboqs] README for more detailed instructions.
 
 
 [liboqs]: https://github.com/open-quantum-safe/liboqs
 [bindgen]: https://crates.io/crates/bindgen
 [oqs]: https://crates.io/crates/oqs
-[`build-liboqs.sh`]: https://github.com/mullvad/oqs-rs/blob/master/build-liboqs.sh
+[`build-liboqs.sh`]: https://github.com/mullvad/oqs-rs/blob/master/oqs-sys/build-liboqs.sh
 
 License: MIT/Apache-2.0

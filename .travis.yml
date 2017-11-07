@@ -1,8 +1,6 @@
 language: rust
 cache:
   cargo: true
-  directories:
-    - $HOME/liboqs
 rust:
   - nightly
   - stable
@@ -15,7 +13,7 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       sudo add-apt-repository ppa:elt/libsodium -y;
       sudo apt-get -qq update;
-      sudo apt-get install -y clang libsodium-dev;
+      sudo apt-get install -y clang libsodium-dev libgmp-dev;
     fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       brew update;
@@ -23,8 +21,12 @@ before_install:
     fi
 
 before_script:
-  - ./build-liboqs.sh $HOME
-  - export OQS_DIR=$HOME/liboqs
+  - cd oqs-sys
+  - export OQS_WITH_SODIUM=1
+  - export OQS_WITH_GMP=1
+  - ./build-liboqs.sh
+  - cd ..
+  - export OQS_DIR=$PWD/oqs-sys/liboqs
   - export PATH=$HOME/.cargo/bin:$HOME/.local/bin:$PATH
   - env
 

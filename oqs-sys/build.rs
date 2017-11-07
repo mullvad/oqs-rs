@@ -20,7 +20,15 @@ fn main() {
     let oqs_include_dir = oqs_dir.join("include");
 
     println!("cargo:rustc-link-lib=oqs");
-    println!("cargo:rustc-link-lib=sodium");
+
+    if option_env!("OQS_WITH_SODIUM") == Some("1") {
+        println!("cargo:rustc-link-lib=sodium");
+    }
+
+    if option_env!("OQS_WITH_GMP") == Some("1")  {
+        println!("cargo:rustc-link-lib=gmp");
+    }
+
     println!(
         "cargo:rustc-link-search=native={}",
         oqs_dir.to_string_lossy()
