@@ -24,6 +24,21 @@ of the crates should be fairly straight forward, check out their respective docu
 
 ## Building statically linked binaries
 
-In order to build statically linked binaries, a musl toolchain and openssl built for musl is needed.
-A script is provided in the root folder of this repo to help with this: [`build-static.sh`].
-Run it in order to install needed dependencies and producing statically linked binaries.
+In order to build statically linked binaries, a musl toolchain is needed.
+First, you'll need to install the following packages, using apt-get or similar:
+```
+autoconf
+automake
+libtool
+make
+musl-dev
+musl-tools
+libclang-dev
+```
+
+You'll also need to add a rust target using rustup:
+```
+rustup target add x86_64-unknown-linux-musl
+```
+
+Then, you can run the [`build-static.sh`] script in the wireguard-establish-psk folder of this repo to build the static binaries.
