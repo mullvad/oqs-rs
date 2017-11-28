@@ -29,7 +29,7 @@ lazy_static! {
 }
 
 pub fn parse_arguments() -> Settings {
-    let app = App::new("wireguard-establish-psk-server")
+    let app = App::new("mullvad-wg-establish-psk-server")
         .version(crate_version!())
         .author(crate_authors!())
         .about(crate_description!())

@@ -14,7 +14,7 @@ extern crate error_chain;
 #[macro_use]
 extern crate lazy_static;
 extern crate oqs_kex_rpc;
-extern crate wireguard_establish_psk;
+extern crate mullvad_wg_establish_psk;
 
 use error_chain::ChainedError;
 
@@ -24,7 +24,7 @@ use std::result::Result as StdResult;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
 
-use wireguard_establish_psk::generate_psk;
+use mullvad_wg_establish_psk::generate_psk;
 
 mod cli;
 mod wg;

@@ -3,5 +3,5 @@ members = [
     "oqs-sys",
     "oqs",
     "oqs-kex-rpc",
-    "wireguard-establish-psk",
+    "mullvad-wg-establish-psk",
 ]
