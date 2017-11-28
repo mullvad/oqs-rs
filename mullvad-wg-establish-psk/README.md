@@ -1,4 +1,4 @@
-# wireguard-establish-psk
+# mullvad-wg-establish-psk
 
 ## Building statically linked binaries
 
@@ -23,6 +23,6 @@ Then, you can run the [`build-static.sh`] script to build the static binaries.
 
 
 [oqs]: https://crates.io/crates/oqs
-[`build-static.sh`]: https://github.com/mullvad/oqs-rs/blob/master/wireguard-establish-psk/build-static.sh
+[`build-static.sh`]: https://github.com/mullvad/oqs-rs/blob/master/mullvad-wg-establish-psk/build-static.sh
 
 License: MIT/Apache-2.0

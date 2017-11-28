@@ -9,7 +9,7 @@ cd ../oqs-sys
 # Set library path for liboqs
 export OQS_DIR=$PWD/liboqs
 
-cd ../wireguard-establish-psk
+cd ../mullvad-wg-establish-psk
 
 # Build everything
 cargo +stable build --release --target=x86_64-unknown-linux-musl

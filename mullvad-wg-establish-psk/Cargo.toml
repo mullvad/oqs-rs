@@ -1,5 +1,5 @@
 [package]
-name = "wireguard-establish-psk"
+name = "mullvad-wg-establish-psk"
 version = "0.1.0"
 authors = ["Mullvad VPN <admin@mullvad.net>", "Linus Färnstrand <faern@faern.net>", "Odd Stranne <odd@mullvad.net>"]
 license = "MIT/Apache-2.0"
@@ -17,9 +17,9 @@ clap = "2.26"
 lazy_static = "0.2"
 
 [[bin]]
-name = "wireguard-establish-psk-server"
+name = "mullvad-wg-establish-psk-server"
 path = "src/server/main.rs"
 
 [[bin]]
-name = "wireguard-establish-psk"
+name = "mullvad-wg-establish-psk"
 path = "src/client.rs"
