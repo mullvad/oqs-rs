@@ -5,18 +5,12 @@
 In order to build statically linked binaries, a musl toolchain is needed.
 First, you'll need to install the following packages, using apt-get or similar:
 ```
-autoconf
-automake
-libtool
-make
-musl-dev
-musl-tools
-libclang-dev
+autoconf automake libtool make musl-dev musl-tools libclang-dev
 ```
 
-You'll also need to add a rust target using rustup:
+You'll also need to add a rust target using rustup. We add it to the stable toolchain, since we are going to build against that:
 ```
-rustup target add x86_64-unknown-linux-musl
+rustup target add x86_64-unknown-linux-musl --toolchain stable
 ```
 
 Then, you can run the [`build-static.sh`] script to build the static binaries.
