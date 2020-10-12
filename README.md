@@ -1,5 +1,8 @@
 # oqs - Open Quantum Safe bindings for Rust
 
+**THESE BINDINGS ARE NOT MAINTAINED**. Please see https://github.com/open-quantum-safe/liboqs-rust
+for the new official bindings for [`liboqs`].
+
 This repository contains the following crates:
 * [`oqs-sys`] - Low level FFI bindings for [`liboqs`].
 * [`oqs`] - Higher level Rust representations.
